@@ -35,4 +35,3 @@ title,body,labels,assignees,project,field_name_1,field_name_2,...
 
 C.I.F.T.T. is experimental. Like your last relationship. Use with caution.
 We’re not responsible for any emotional damage caused by accidental issue spam.
-```
