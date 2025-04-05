@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/ciftty.webp" alt="C.I.F.T.T. Logo" width="300"/>
+</p>
+
 # C.I.F.T.T.
 > *CSV Input for Feature Triage and Tracking*
 
@@ -30,6 +34,8 @@ Your CSV should include headers like:
 ```csv
 title,body,labels,assignees,project,field_name_1,field_name_2,...
 ```
+
+Only the title is necessary to create an issue and therefore only the title column is mandatory.
 
 ## 🤖 Disclaimer
 
