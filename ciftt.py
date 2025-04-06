@@ -60,7 +60,7 @@ def main(
 
     # Initialize GitHub client
     try:
-        github_client = GitHubClient(api_key=settings.github_token)
+        github_client = GitHubClient(api_key=settings.github_token.get_secret_value())
         typer.echo("✅ Connected to GitHub API")
     except Exception as e:
         typer.echo(f"❌ Failed to initialize GitHub client: {e}")
