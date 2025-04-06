@@ -8,6 +8,8 @@ from urllib.parse import urljoin
 import requests
 from pydantic import BaseModel
 
+from github.data import NewIssue
+
 ONE_MIN = 60
 
 
@@ -18,18 +20,12 @@ class GitHubClient(BaseModel):
     _api_calls: Deque = deque()
     _api_rate_limit_per_min: int = 100
     
-    def create_issue(self, owner: str, repo: str, title: str, body: Optional[str] = None, 
-                    labels: Optional[list] = None, assignees: Optional[list] = None) -> dict:
+    def create_issue(self, owner: str, repo: str, issue: NewIssue) -> dict:
         """Create a new issue in the specified repository."""
         endpoint = f"repos/{owner}/{repo}/issues"
-        data = {"title": title}
         
-        if body:
-            data["body"] = body
-        if labels:
-            data["labels"] = labels
-        if assignees:
-            data["assignees"] = assignees
+        # Convert the NewIssue model to a dictionary for the API request
+        data = issue.model_dump(exclude_none=True)
             
         return self._post_request(endpoint, data)
     
