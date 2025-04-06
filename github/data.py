@@ -22,5 +22,6 @@ class UpdatedIssue(BaseModel):
     title: Optional[str] = None
     body: Optional[str] = None
     state: Optional[Literal["open", "closed"]] = None
+    state_reason: Optional[Literal["completed", "not_planned", "reopened"]] = None
     labels: Optional[List[str]] = None
     assignees: Optional[List[str]] = None

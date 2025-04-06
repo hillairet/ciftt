@@ -111,6 +111,8 @@ def main(
                     body=body,
                     labels=labels,
                     assignees=assignees,
+                    state=row.get("state"),
+                    state_reason=row.get("state_reason"),
                 )
                 response = github_client.update_issue(owner, repo_name, issue_number, issue_update)
                 updated_issues.append(response)
