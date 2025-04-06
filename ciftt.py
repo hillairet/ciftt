@@ -7,7 +7,7 @@ from typing import Optional
 
 import typer
 
-app = typer.Typer(help="C.I.F.T.T. - CSV Input for Feature Triage and Tracking")
+app = typer.Typer(help="CIFTT - CSV Input for Feature Triage and Tracking")
 
 
 @app.command()
