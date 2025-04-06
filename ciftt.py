@@ -8,8 +8,7 @@ from typing import Optional, Tuple
 import typer
 
 from csv_data import CSVData
-from github.client import GitHubClient
-from github.data import NewIssue
+from github import GitHubClient, NewIssue
 from settings import Settings
 
 app = typer.Typer(help="CIFTT - CSV Input for Feature Triage and Tracking")
@@ -19,7 +18,7 @@ settings = Settings()
 def parse_repo(repo: str) -> Tuple[str, str]:
     """Parse the repository string into owner and repo name."""
     try:
-        owner, repo_name = repo.split('/')
+        owner, repo_name = repo.split("/")
         return owner, repo_name
     except ValueError:
         raise typer.BadParameter("Repository must be in format 'owner/repo'")
@@ -72,20 +71,32 @@ def main(
         try:
             # Create a NewIssue object from the row data
             issue = NewIssue(
-                title=row['title'],
-                body=row.get('description', row.get('body', None)),  # Try 'description' first, then fall back to 'body'
-                labels=row.get('labels', "").split(",") if row.get('labels') and isinstance(row.get('labels'), str) else None,
-                assignees=row.get('assignees', "").split(",") if row.get('assignees') and isinstance(row.get('assignees'), str) else None
+                title=row["title"],
+                body=row.get(
+                    "description", row.get("body", None)
+                ),  # Try 'description' first, then fall back to 'body'
+                labels=(
+                    row.get("labels", "").split(",")
+                    if row.get("labels") and isinstance(row.get("labels"), str)
+                    else None
+                ),
+                assignees=(
+                    row.get("assignees", "").split(",")
+                    if row.get("assignees") and isinstance(row.get("assignees"), str)
+                    else None
+                ),
             )
-            
+
             # Create the issue on GitHub
             if not dry_run:
                 response = github_client.create_issue(owner, repo_name, issue)
                 created_issues.append(response)
-                typer.echo(f"✅ Created issue #{response['number']}: {response['title']}")
+                typer.echo(
+                    f"✅ Created issue #{response['number']}: {response['title']}"
+                )
         except Exception as e:
             typer.echo(f"❌ Failed to create issue '{row['title']}': {e}")
-    
+
     typer.echo(f"🎉 Created {len(created_issues)} issues successfully")
 
 
