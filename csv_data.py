@@ -18,6 +18,7 @@ class CSVData:
         self.data = None
         self.delimiter = delimiter
         self._load_data()
+        self._normalize_column_names()
         self._validate_titles()
     
     def _detect_delimiter(self) -> str:
@@ -47,6 +48,17 @@ class CSVData:
             self.data = pd.read_csv(self.filepath, delimiter=delimiter)
         except Exception as e:
             raise ValueError(f"Failed to load data file: {e}")
+    
+    def _normalize_column_names(self) -> None:
+        """
+        Normalize column names to lowercase for case-insensitive matching.
+        Creates a mapping from lowercase to original column names.
+        """
+        # Create a mapping of lowercase column names to original column names
+        self.column_map = {col.lower(): col for col in self.data.columns}
+        
+        # Rename columns to lowercase
+        self.data.columns = [col.lower() for col in self.data.columns]
     
     def _validate_titles(self) -> None:
         """

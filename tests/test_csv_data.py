@@ -78,3 +78,32 @@ def test_empty_csv_no_columns(empty_csv_no_columns):
     # Should raise a ValueError due to missing title column
     with pytest.raises(ValueError, match="missing required 'title' column"):
         CSVData(empty_csv_no_columns)
+
+
+@pytest.fixture
+def case_insensitive_csv_path():
+    """Create a temporary CSV file with capitalized column names."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        csv_path = Path(temp_dir) / "case_test.csv"
+        
+        # Create sample data with capitalized column names
+        with open(csv_path, "w") as f:
+            f.write("TITLE,DESCRIPTION\n")
+            f.write("Test issue,This is a test\n")
+        
+        yield csv_path
+
+
+def test_case_insensitive_columns(case_insensitive_csv_path):
+    """Test that column names are matched case-insensitively."""
+    csv_data = CSVData(case_insensitive_csv_path)
+    
+    # Check that data was loaded correctly despite capitalized column names
+    assert csv_data.data is not None
+    assert len(csv_data.data) == 1
+    assert "title" in csv_data.data.columns  # Should be lowercase now
+    assert csv_data.data["title"].iloc[0] == "Test issue"
+    
+    # Verify the column mapping was created
+    assert hasattr(csv_data, "column_map")
+    assert csv_data.column_map["title"] == "TITLE"
