@@ -35,6 +35,19 @@ You deserve better. Let the robot do the boring part.
 
 ---
 
+## 🗺️ Roadmap
+
+| Feature                                                                | Status         |
+|------------------------------------------------------------------------|----------------|
+| Create issues in a GitHub repository with basic fields                 | ✅ Done        |
+| Update basic fields of existing issues in a GitHub repository          | ✅ Done        |
+| Validate labels and assignees in the CSV before creating/updating      | 🛠️ In Progress |
+| Set GitHub Project fields when creating or updating issues             | 📝 To Do       |
+| Validate GitHub Project field values in the CSV                        | 📝 To Do       |
+| Provide tips and examples to help prepare the CSV                      | 📝 To Do       |
+
+---
+
 ## 🚀 Quick Start
 
 ```bash
