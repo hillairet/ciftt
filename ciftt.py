@@ -73,7 +73,7 @@ def main(
             # Create a NewIssue object from the row data
             issue = NewIssue(
                 title=row['title'],
-                body=row.get('body', None),
+                body=row.get('description', row.get('body', None)),  # Try 'description' first, then fall back to 'body'
                 labels=row.get('labels', "").split(",") if row.get('labels') and isinstance(row.get('labels'), str) else None,
                 assignees=row.get('assignees', "").split(",") if row.get('assignees') and isinstance(row.get('assignees'), str) else None
             )
