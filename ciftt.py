@@ -8,8 +8,10 @@ from typing import Optional
 import typer
 
 from csv_data import CSVData
+from settings import Settings
 
 app = typer.Typer(help="CIFTT - CSV Input for Feature Triage and Tracking")
+settings = Settings()
 
 
 @app.command()
