@@ -2,6 +2,10 @@
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+packages = ["csv_data", "settings", "ciftt"]
+py-modules = []
+
 [project]
 name = "ciftt"
 version = "0.1.0"
