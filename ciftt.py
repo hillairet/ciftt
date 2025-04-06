@@ -74,8 +74,8 @@ def main(
             issue = NewIssue(
                 title=row['title'],
                 body=row.get('body', None),
-                labels=row.get('labels', "").split(",") if row.get('labels') else None,
-                assignees=row.get('assignees', "").split(",") if row.get('assignees') else None
+                labels=row.get('labels', "").split(",") if row.get('labels') and isinstance(row.get('labels'), str) else None,
+                assignees=row.get('assignees', "").split(",") if row.get('assignees') and isinstance(row.get('assignees'), str) else None
             )
             
             # Create the issue on GitHub
