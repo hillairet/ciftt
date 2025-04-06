@@ -63,6 +63,10 @@ class CSVData:
         
         # Rename columns to lowercase
         self.data.columns = [col.lower() for col in self.data.columns]
+        
+        # Ensure 'url' column exists
+        if 'url' not in self.data.columns:
+            self.data['url'] = None
     
     def _validate_titles(self) -> None:
         """
