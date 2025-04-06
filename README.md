@@ -12,10 +12,12 @@
 ## 🧠 Why use CIFTT?
 
 It’s Friday afternoon.
+
 You’re *almost* free. Your brain is halfway out the door, already thinking about nachos or silence or both.
 
 Then it happens.
 A spreadsheet lands in your inbox with **200 feature requests**. Two. Hundred.
+
 Your manager wants them in GitHub. Tracked. Tagged. Assigned.
 Beautifully sorted into your GitHub Project like some kind of agile wizard.
 
