@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ciftt"
+version = "0.1.0"
+description = "CSV Input for Feature Triage and Tracking - A tool to create or update GitHub issues from CSV input"
+readme = "README.md"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+license = {file = "LICENSE"}
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "typer>=0.9.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "pandas>=2.0.0",
+    "requests>=2.28.0",
+]
+
+[project.scripts]
+ciftt = "ciftt:app"
+
+[project.urls]
+"Homepage" = "https://github.com/yourusername/ciftt"
+"Bug Tracker" = "https://github.com/yourusername/ciftt/issues"
+
+[tool.black]
+line-length = 88
+target-version = ["py38"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = "E203"
+exclude = [".git", "__pycache__", "build", "dist"]
