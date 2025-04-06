@@ -10,6 +10,12 @@ Use the following packages:
 * pydantic for clients and data classes
 * pydantic-settings for the settings
 
+I use the following formatter and linter so respect their requirements:
+
+* flake8
+* black
+* isort
+
 ## Structure
 
 The main script is in the root along with the supporting modules:
