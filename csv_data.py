@@ -46,6 +46,10 @@ class CSVData:
             # Use provided delimiter or detect it
             delimiter = self.delimiter or self._detect_delimiter()
             self.data = pd.read_csv(self.filepath, delimiter=delimiter)
+        except pd.errors.EmptyDataError:
+            # Handle empty CSV files with no columns
+            self.data = pd.DataFrame()
+            raise ValueError("Data file is missing required 'title' column")
         except Exception as e:
             raise ValueError(f"Failed to load data file: {e}")
     
