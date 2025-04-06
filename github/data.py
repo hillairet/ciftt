@@ -10,3 +10,14 @@ class NewIssue(BaseModel):
     body: Optional[str] = None
     labels: Optional[List[str]] = None
     assignees: Optional[List[str]] = None
+
+
+class UpdatedIssue(BaseModel):
+    """
+    Represents updates to an existing GitHub issue.
+    """
+    title: Optional[str] = None
+    body: Optional[str] = None
+    state: Optional[str] = None
+    labels: Optional[List[str]] = None
+    assignees: Optional[List[str]] = None

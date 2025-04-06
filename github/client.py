@@ -8,7 +8,7 @@ from urllib.parse import urljoin
 import requests
 from pydantic import BaseModel
 
-from github.data import NewIssue
+from github.data import NewIssue, UpdatedIssue
 
 ONE_MIN = 60
 
@@ -29,25 +29,14 @@ class GitHubClient(BaseModel):
             
         return self._post_request(endpoint, data)
     
-    def update_issue(self, owner: str, repo: str, issue_number: int, 
-                    title: Optional[str] = None, body: Optional[str] = None,
-                    state: Optional[str] = None, labels: Optional[list] = None, 
-                    assignees: Optional[list] = None) -> dict:
+    def update_issue(self, owner: str, repo: str, issue_number: int, issue_update: UpdatedIssue) -> dict:
         """Update an existing issue in the specified repository."""
         endpoint = f"repos/{owner}/{repo}/issues/{issue_number}"
-        data = {}
         
-        if title:
-            data["title"] = title
-        if body:
-            data["body"] = body
-        if state and state in ["open", "closed"]:
-            data["state"] = state
-        if labels:
-            data["labels"] = labels
-        if assignees:
-            data["assignees"] = assignees
-            
+        # Convert the UpdatedIssue model to a dictionary for the API request
+        # Exclude None values to only update specified fields
+        data = issue_update.model_dump(exclude_none=True)
+        
         return self._patch_request(endpoint, data)
 
     def _get_request(self, endpoint: str, params: dict = None) -> dict:
