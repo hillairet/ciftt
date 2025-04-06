@@ -39,4 +39,8 @@ ciftt/
 
 ## Version Control
 
-Use gitmojis for the git commits
+Use gitmojis for the git commits:
+
+* Use :sparkles: for features
+* Use :recycle: for refactor
+* Use :bug: for a fix
