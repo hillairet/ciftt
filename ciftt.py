@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-C.I.F.T.T. - CSV Input for Feature Triage and Tracking
+CIFTT - CSV Input for Feature Triage and Tracking
 A tool to create or update GitHub issues from CSV input.
 """
 from typing import Optional
