@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "CSV Input for Feature Triage and Tracking - A tool to create or update GitHub issues from CSV input"
 readme = "README.md"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Anthony Hillairet", email = "anthony.hillairet@gmail.com"}
 ]
 license = {file = "LICENSE"}
 requires-python = ">=3.8"
@@ -29,8 +29,8 @@ dependencies = [
 ciftt = "ciftt:app"
 
 [project.urls]
-"Homepage" = "https://github.com/yourusername/ciftt"
-"Bug Tracker" = "https://github.com/yourusername/ciftt/issues"
+"Homepage" = "https://github.com/hillairet/ciftt"
+"Bug Tracker" = "https://github.com/hillairet/ciftt/issues"
 
 [tool.black]
 line-length = 88
