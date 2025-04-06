@@ -26,7 +26,7 @@ def main(
     Create or update GitHub issues from a CSV file.
     """
     typer.echo(f"🔍 Reading CSV file: {csv_file}")
-    
+
     try:
         # Load and validate the CSV data
         csv_data = CSVData(csv_file)
@@ -34,7 +34,7 @@ def main(
     except Exception as e:
         typer.echo(f"❌ Error: {e}")
         raise typer.Exit(code=1)
-    
+
     typer.echo(f"🎯 Target repository: {repo}")
 
     if dry_run:
