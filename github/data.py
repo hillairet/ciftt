@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Literal
 from pydantic import BaseModel
 
 
@@ -18,6 +18,6 @@ class UpdatedIssue(BaseModel):
     """
     title: Optional[str] = None
     body: Optional[str] = None
-    state: Optional[str] = None
+    state: Optional[Literal["open", "closed"]] = None
     labels: Optional[List[str]] = None
     assignees: Optional[List[str]] = None
