@@ -13,6 +13,7 @@ from github import (
     GitHubClient,
     NewIssue,
     UpdatedIssue,
+    extract_issue_number,
     parse_repo,
 )
 from settings import Settings
