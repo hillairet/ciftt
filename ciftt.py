@@ -9,20 +9,13 @@ from typing import Optional, Tuple
 import typer
 
 from csv_data import CSVData
-from github import GitHubClient, NewIssue, UpdatedIssue
+from github import GitHubClient, NewIssue, UpdatedIssue, parse_repo
 from settings import Settings
 
 app = typer.Typer(help="CIFTT - CSV Input for Feature Triage and Tracking")
 settings = Settings()
 
 
-def parse_repo(repo: str) -> Tuple[str, str]:
-    """Parse the repository string into owner and repo name."""
-    try:
-        owner, repo_name = repo.split("/")
-        return owner, repo_name
-    except ValueError:
-        raise typer.BadParameter("Repository must be in format 'owner/repo'")
 
 
 def extract_issue_number(url: str) -> Optional[int]:
@@ -60,8 +53,12 @@ def main(
         typer.echo(f"❌ Error: {e}")
         raise typer.Exit(code=1)
 
-    # Parse the repository string
-    owner, repo_name = parse_repo(repo)
+    try:
+        # Parse the repository string
+        owner, repo_name = parse_repo(repo)
+    except ValueError as e:
+        typer.echo(f"❌ Error: {e}")
+        raise typer.Exit(code=1)
     typer.echo(f"🎯 Target repository: {owner}/{repo_name}")
 
     if dry_run:
