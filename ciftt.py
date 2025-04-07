@@ -79,7 +79,14 @@ def main(
 
     for issue in issues:
         try:
-            if isinstance(issue, UpdatedIssue):
+            if isinstance(issue, NewIssue):
+                # Create new issue
+                response = github_client.create_issue(owner, repo_name, issue)
+                created_issues.append(response)
+                typer.echo(
+                    f"✅ Created issue #{response['number']}: {response['title']}"
+                )
+            elif isinstance(issue, UpdatedIssue):
                 # Update existing issue
                 response = github_client.update_issue(
                     owner, repo_name, issue.issue_number, issue
@@ -87,13 +94,6 @@ def main(
                 updated_issues.append(response)
                 typer.echo(
                     f"✅ Updated issue #{response['number']}: {response['title']}"
-                )
-            elif isinstance(issue, NewIssue):
-                # Create new issue
-                response = github_client.create_issue(owner, repo_name, issue)
-                created_issues.append(response)
-                typer.echo(
-                    f"✅ Created issue #{response['number']}: {response['title']}"
                 )
         except Exception as e:
             issue_title = getattr(issue, "title", "Unknown")
