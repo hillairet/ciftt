@@ -3,8 +3,8 @@
 CIFTT - CSV Input for Feature Triage and Tracking
 A tool to create or update GitHub issues from CSV input.
 """
-from typing import Optional, Tuple
 import re
+from typing import Optional, Tuple
 
 import typer
 
@@ -29,9 +29,9 @@ def extract_issue_number(url: str) -> Optional[int]:
     """Extract the issue number from a GitHub issue URL."""
     if not url or not isinstance(url, str):
         return None
-    
+
     # Match patterns like https://github.com/owner/repo/issues/123
-    match = re.search(r'/issues/(\d+)$', url)
+    match = re.search(r"/issues/(\d+)$", url)
     if match:
         return int(match.group(1))
     return None
@@ -67,7 +67,7 @@ def main(
     if dry_run:
         typer.echo("🧪 DRY RUN MODE: No changes will be made on GitHub")
         for index, row in csv_data.data.iterrows():
-            issue_number = extract_issue_number(row.get('url'))
+            issue_number = extract_issue_number(row.get("url"))
             if issue_number:
                 typer.echo(f"Would update issue #{issue_number}: {row['title']}")
             else:
@@ -85,11 +85,11 @@ def main(
     # Process issues (create or update)
     created_issues = []
     updated_issues = []
-    
+
     for index, row in csv_data.data.iterrows():
         try:
-            issue_number = extract_issue_number(row.get('url'))
-            
+            issue_number = extract_issue_number(row.get("url"))
+
             # Common fields for both new and updated issues
             title = row["title"]
             body = row.get("description", row.get("body", None))
@@ -103,7 +103,7 @@ def main(
                 if row.get("assignees") and isinstance(row.get("assignees"), str)
                 else None
             )
-            
+
             if issue_number:
                 # Update existing issue
                 issue_update = UpdatedIssue(
@@ -114,9 +114,13 @@ def main(
                     state=row.get("state"),
                     state_reason=row.get("state_reason"),
                 )
-                response = github_client.update_issue(owner, repo_name, issue_number, issue_update)
+                response = github_client.update_issue(
+                    owner, repo_name, issue_number, issue_update
+                )
                 updated_issues.append(response)
-                typer.echo(f"✅ Updated issue #{response['number']}: {response['title']}")
+                typer.echo(
+                    f"✅ Updated issue #{response['number']}: {response['title']}"
+                )
             else:
                 # Create new issue
                 new_issue = NewIssue(
@@ -127,12 +131,16 @@ def main(
                 )
                 response = github_client.create_issue(owner, repo_name, new_issue)
                 created_issues.append(response)
-                typer.echo(f"✅ Created issue #{response['number']}: {response['title']}")
-                
+                typer.echo(
+                    f"✅ Created issue #{response['number']}: {response['title']}"
+                )
+
         except Exception as e:
             typer.echo(f"❌ Failed to process issue '{row['title']}': {e}")
 
-    typer.echo(f"🎉 Created {len(created_issues)} issues and updated {len(updated_issues)} issues successfully")
+    typer.echo(
+        f"🎉 Created {len(created_issues)} issues and updated {len(updated_issues)} issues successfully"
+    )
 
 
 if __name__ == "__main__":
