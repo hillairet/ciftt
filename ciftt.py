@@ -3,31 +3,17 @@
 CIFTT - CSV Input for Feature Triage and Tracking
 A tool to create or update GitHub issues from CSV input.
 """
-import re
-from typing import Optional, Tuple
+from typing import Optional
 
 import typer
 
 from csv_data import CSVData
-from github import GitHubClient, NewIssue, UpdatedIssue, parse_repo
+from github import GitHubClient, NewIssue, UpdatedIssue, parse_repo, extract_issue_number
 from settings import Settings
 
 app = typer.Typer(help="CIFTT - CSV Input for Feature Triage and Tracking")
 settings = Settings()
 
-
-
-
-def extract_issue_number(url: str) -> Optional[int]:
-    """Extract the issue number from a GitHub issue URL."""
-    if not url or not isinstance(url, str):
-        return None
-
-    # Match patterns like https://github.com/owner/repo/issues/123
-    match = re.search(r"/issues/(\d+)$", url)
-    if match:
-        return int(match.group(1))
-    return None
 
 
 @app.command()
