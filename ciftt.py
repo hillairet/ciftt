@@ -8,12 +8,17 @@ from typing import Optional
 import typer
 
 from csv_data import CSVData
-from github import GitHubClient, NewIssue, UpdatedIssue, parse_repo, extract_issue_number
+from github import (
+    GitHubClient,
+    NewIssue,
+    UpdatedIssue,
+    extract_issue_number,
+    parse_repo,
+)
 from settings import Settings
 
 app = typer.Typer(help="CIFTT - CSV Input for Feature Triage and Tracking")
 settings = Settings()
-
 
 
 @app.command()
