@@ -37,7 +37,7 @@ def main(
     try:
         # Load and validate the CSV data
         csv_data = CSVData(csv_file)
-        typer.echo(f"✅ Successfully loaded CSV with {len(csv_data.data)} rows")
+        typer.echo(f"💾 Successfully loaded CSV with {len(csv_data.data)} rows")
     except Exception as e:
         typer.echo(f"❌ Error: {e}")
         raise typer.Exit(code=1)
@@ -63,7 +63,7 @@ def main(
     # Initialize GitHub client
     try:
         github_client = GitHubClient(api_key=settings.github_token.get_secret_value())
-        typer.echo("✅ Connected to GitHub API")
+        typer.echo("🐙 Connected to GitHub API")
     except Exception as e:
         typer.echo(f"❌ Failed to initialize GitHub client: {e}")
         raise typer.Exit(code=1)
