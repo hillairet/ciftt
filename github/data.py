@@ -26,3 +26,4 @@ class UpdatedIssue(BaseIssue):
     title: Optional[str] = None
     state: Optional[Literal["open", "closed"]] = None
     state_reason: Optional[Literal["completed", "not_planned", "reopened"]] = None
+    issue_number: int

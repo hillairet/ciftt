@@ -9,10 +9,10 @@ import typer
 
 from csv_data import CSVData
 from github import (
+    BaseIssue,
     GitHubClient,
     NewIssue,
     UpdatedIssue,
-    extract_issue_number,
     parse_repo,
 )
 from settings import Settings
@@ -74,57 +74,32 @@ def main(
     created_issues = []
     updated_issues = []
 
-    for index, row in csv_data.data.iterrows():
+    from transform import transform_csv_to_issues
+    
+    # Transform CSV data into issue instances
+    issues = transform_csv_to_issues(csv_data.data)
+    
+    for issue in issues:
         try:
-            issue_number = extract_issue_number(row.get("url"))
-
-            # Common fields for both new and updated issues
-            title = row["title"]
-            body = row.get("description", row.get("body", None))
-            labels = (
-                row.get("labels", "").split(",")
-                if row.get("labels") and isinstance(row.get("labels"), str)
-                else None
-            )
-            assignees = (
-                row.get("assignees", "").split(",")
-                if row.get("assignees") and isinstance(row.get("assignees"), str)
-                else None
-            )
-
-            if issue_number:
+            if isinstance(issue, UpdatedIssue):
                 # Update existing issue
-                issue_update = UpdatedIssue(
-                    title=title,
-                    body=body,
-                    labels=labels,
-                    assignees=assignees,
-                    state=row.get("state"),
-                    state_reason=row.get("state_reason"),
-                )
                 response = github_client.update_issue(
-                    owner, repo_name, issue_number, issue_update
+                    owner, repo_name, issue.issue_number, issue
                 )
                 updated_issues.append(response)
                 typer.echo(
                     f"✅ Updated issue #{response['number']}: {response['title']}"
                 )
-            else:
+            elif isinstance(issue, NewIssue):
                 # Create new issue
-                new_issue = NewIssue(
-                    title=title,
-                    body=body,
-                    labels=labels,
-                    assignees=assignees,
-                )
-                response = github_client.create_issue(owner, repo_name, new_issue)
+                response = github_client.create_issue(owner, repo_name, issue)
                 created_issues.append(response)
                 typer.echo(
                     f"✅ Created issue #{response['number']}: {response['title']}"
                 )
-
         except Exception as e:
-            typer.echo(f"❌ Failed to process issue '{row['title']}': {e}")
+            issue_title = getattr(issue, 'title', 'Unknown')
+            typer.echo(f"❌ Failed to process issue '{issue_title}': {e}")
 
     typer.echo(
         f"🎉 Created {len(created_issues)} issues and updated {len(updated_issues)} issues successfully"
