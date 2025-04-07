@@ -3,13 +3,10 @@
 CIFTT - CSV Input for Feature Triage and Tracking
 A tool to create or update GitHub issues from CSV input.
 """
-from typing import Optional
-
 import typer
 
 from csv_data import CSVData
 from github import (
-    BaseIssue,
     GitHubClient,
     NewIssue,
     UpdatedIssue,
@@ -76,10 +73,10 @@ def main(
     updated_issues = []
 
     from transform import transform_csv_to_issues
-    
+
     # Transform CSV data into issue instances
     issues = transform_csv_to_issues(csv_data.data)
-    
+
     for issue in issues:
         try:
             if isinstance(issue, UpdatedIssue):
@@ -99,7 +96,7 @@ def main(
                     f"✅ Created issue #{response['number']}: {response['title']}"
                 )
         except Exception as e:
-            issue_title = getattr(issue, 'title', 'Unknown')
+            issue_title = getattr(issue, "title", "Unknown")
             typer.echo(f"❌ Failed to process issue '{issue_title}': {e}")
 
     typer.echo(
