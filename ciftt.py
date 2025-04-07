@@ -88,9 +88,7 @@ def main(
                 )
             elif isinstance(issue, UpdatedIssue):
                 # Update existing issue
-                response = github_client.update_issue(
-                    owner, repo_name, issue.issue_number, issue
-                )
+                response = github_client.update_issue(owner, repo_name, issue)
                 updated_issues.append(response)
                 typer.echo(
                     f"✅ Updated issue #{response['number']}: {response['title']}"

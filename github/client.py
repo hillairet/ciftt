@@ -19,24 +19,24 @@ class GitHubClient(BaseModel):
     _api_requests_counter: int = 0
     _api_calls: Deque = deque()
     _api_rate_limit_per_min: int = 100
-    
+
     def create_issue(self, owner: str, repo: str, issue: NewIssue) -> dict:
         """Create a new issue in the specified repository."""
         endpoint = f"repos/{owner}/{repo}/issues"
-        
+
         # Convert the NewIssue model to a dictionary for the API request
         data = issue.model_dump(exclude_none=True)
-            
+
         return self._post_request(endpoint, data)
-    
-    def update_issue(self, owner: str, repo: str, issue_number: int, issue_update: UpdatedIssue) -> dict:
+
+    def update_issue(self, owner: str, repo: str, issue_update: UpdatedIssue) -> dict:
         """Update an existing issue in the specified repository."""
         endpoint = f"repos/{owner}/{repo}/issues/{issue_number}"
-        
+
         # Convert the UpdatedIssue model to a dictionary for the API request
         # Exclude None values to only update specified fields
         data = issue_update.model_dump(exclude_none=True)
-        
+
         return self._patch_request(endpoint, data)
 
     def _get_request(self, endpoint: str, params: dict = None) -> dict:
@@ -44,31 +44,28 @@ class GitHubClient(BaseModel):
         if params is None:
             params = {}
         return self._request("GET", endpoint, params=params)
-    
+
     def _post_request(self, endpoint: str, data: dict) -> dict:
         """Make a POST request to the GitHub API."""
         return self._request("POST", endpoint, json=data)
-    
+
     def _patch_request(self, endpoint: str, data: dict) -> dict:
         """Make a PATCH request to the GitHub API."""
         return self._request("PATCH", endpoint, json=data)
-    
+
     def _request(self, method: str, endpoint: str, **kwargs) -> dict:
         """Make a request to the GitHub API with rate limiting."""
         self._throttle_api_calls()
-        
+
         headers = {
             "Accept": "application/vnd.github.v3+json",
             "Authorization": f"token {self.api_key}",
         }
-        
+
         response = requests.request(
-            method=method,
-            url=urljoin(self.url, endpoint),
-            headers=headers,
-            **kwargs
+            method=method, url=urljoin(self.url, endpoint), headers=headers, **kwargs
         )
-        
+
         # Check for successful status code (2xx)
         if not 200 <= response.status_code < 300:
             logging.error(
@@ -77,7 +74,7 @@ class GitHubClient(BaseModel):
             )
             # Don't exit the program, raise an exception instead
             response.raise_for_status()
-            
+
         return response.json()
 
     def _throttle_api_calls(self):
