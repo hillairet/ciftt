@@ -31,7 +31,7 @@ class GitHubClient(BaseModel):
 
     def update_issue(self, owner: str, repo: str, issue_update: UpdatedIssue) -> dict:
         """Update an existing issue in the specified repository."""
-        endpoint = f"repos/{owner}/{repo}/issues/{issue_number}"
+        endpoint = f"repos/{owner}/{repo}/issues/{issue_update.issue_number}"
 
         # Convert the UpdatedIssue model to a dictionary for the API request
         # Exclude None values to only update specified fields
