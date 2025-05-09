@@ -49,12 +49,13 @@ class CSVData:
             # Use provided delimiter or detect it
             delimiter = self.delimiter or self._detect_delimiter()
             self.data = pd.read_csv(self.filepath, delimiter=delimiter)
-            # Handle \n, \t, \r, etc ...
-            self.data["description"] = self.data["description"].apply(
-                lambda x: (
-                    codecs.decode(x, "unicode_escape") if isinstance(x, str) else x
+            # Handle \n, \t, \r, etc ... if description column exists
+            if "description" in self.data.columns:
+                self.data["description"] = self.data["description"].apply(
+                    lambda x: (
+                        codecs.decode(x, "unicode_escape") if isinstance(x, str) else x
+                    )
                 )
-            )
         except pd.errors.EmptyDataError:
             # Handle empty CSV files with no columns
             self.data = pd.DataFrame()
@@ -79,16 +80,35 @@ class CSVData:
 
     def _validate_titles(self) -> None:
         """
-        Validate that the 'title' column exists and all values are
-        non-empty strings.
+        Validate that:
+        1. If there are any new issues (rows without a URL), the 'title' column must exist
+        2. All new issues must have non-empty title values
         """
-        if "title" not in self.data.columns:
-            raise ValueError("Data file is missing required 'title' column")
+        # Check if there are any new issues (rows without a URL)
+        if "url" in self.data.columns:
+            new_issues = self.data["url"].isna() | (self.data["url"] == "")
+            has_new_issues = new_issues.any()
+        else:
+            # If there's no URL column, all rows are considered new issues
+            has_new_issues = True
+            new_issues = pd.Series(True, index=self.data.index)
 
-        # Check that all titles are non-empty strings
-        empty_titles = self.data["title"].isna() | (self.data["title"] == "")
-        if empty_titles.any():
-            empty_rows = list(
-                self.data.index[empty_titles] + 1
-            )  # +1 for human-readable row numbers
-            raise ValueError(f"Empty title values found in rows: {empty_rows}")
+        # If there are new issues, ensure the 'title' column exists
+        if has_new_issues and "title" not in self.data.columns:
+            raise ValueError(
+                "Data file is missing required 'title' column for new issues"
+            )
+
+        # If there are new issues and a title column, ensure all new issues have non-empty titles
+        if has_new_issues and "title" in self.data.columns:
+            empty_titles = (
+                self.data["title"].isna() | (self.data["title"] == "")
+            ) & new_issues
+
+            if empty_titles.any():
+                empty_rows = list(
+                    self.data.index[empty_titles] + 1
+                )  # +1 for human-readable row numbers
+                raise ValueError(
+                    f"Empty title values found for new issues in rows: {empty_rows}"
+                )

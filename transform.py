@@ -19,55 +19,33 @@ def transform_row_to_issue(row: pd.Series) -> BaseIssue:
     Returns:
         A BaseIssue instance (either NewIssue or UpdatedIssue)
     """
+    # Convert pandas Series to dict, removing NaN values
+    row_dict = row.dropna().to_dict()
+    
     # Extract issue number from URL if present
-    issue_number = extract_issue_number(row.get("url"))
-
-    # Common fields for both new and updated issues
-    title = row["title"]
-    body = row.get("description", row.get("body", None))
-
-    # Process labels if present
-    labels = None
-    if row.get("labels") and isinstance(row.get("labels"), str):
-        # Filter out empty strings after splitting
-        labels = [
-            label.strip() for label in row.get("labels", "").split(",") if label.strip()
-        ]
-        if not labels:  # If all labels were empty strings
-            labels = None
-
-    # Process assignees if present
-    assignees = None
-    if row.get("assignees") and isinstance(row.get("assignees"), str):
-        # Filter out empty strings after splitting
-        assignees = [
-            assignee.strip()
-            for assignee in row.get("assignees", "").split(",")
-            if assignee.strip()
-        ]
-        if not assignees:  # If all assignees were empty strings
-            assignees = None
-
-    # Create the appropriate issue type based on whether we're updating or creating
+    issue_number = extract_issue_number(row_dict.get("url"))
+    
+    # Remove URL as it's not a field in the model
+    if "url" in row_dict:
+        row_dict.pop("url")
+    
     if issue_number:
         # Update existing issue
-        return UpdatedIssue(
-            title=title,
-            body=body,
-            labels=labels,
-            assignees=assignees,
-            state=row.get("state"),
-            state_reason=row.get("state_reason"),
-            issue_number=issue_number,
-        )
+        row_dict["issue_number"] = issue_number
+        
+        try:
+            return UpdatedIssue.model_validate(row_dict)
+        except Exception as e:
+            raise ValueError(f"Invalid update issue data: {e}")
     else:
-        # Create new issue
-        return NewIssue(
-            title=title,
-            body=body,
-            labels=labels,
-            assignees=assignees,
-        )
+        # Create new issue - title is required
+        if "title" not in row_dict or row_dict.get("title") == "":
+            raise ValueError("Title is required for new issues")
+        
+        try:
+            return NewIssue.model_validate(row_dict)
+        except Exception as e:
+            raise ValueError(f"Invalid new issue data: {e}")
 
 
 def transform_csv_to_issues(data: pd.DataFrame) -> List[BaseIssue]:
