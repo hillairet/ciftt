@@ -1,5 +1,5 @@
-sample.csv
-sample.tsv
+sample*.csv
+sample*.tsv
 .envrc
 
 # Byte-compiled / optimized / DLL files
