@@ -55,18 +55,29 @@ You deserve better. Let the robot do the boring part.
 git clone https://github.com/hillairet/ciftt.git
 cd ciftt
 
-# Run the thing
-python ciftt.py input.csv myorg/myrepo
+# Import issues from CSV
+python ciftt.py import-issues input.csv myorg/myrepo
+
+# Export issues to CSV
+python ciftt.py export-issues myorg/myrepo output.csv
+
+# Export specific issues
+python ciftt.py export-issues myorg/myrepo output.csv --issues "1,3-5,8"
+
+# Export all issues (including closed ones)
+python ciftt.py export-issues myorg/myrepo output.csv --all
 ```
 
 ## 📄 CSV Format
 
 Your CSV should include headers like:
 ```csv
-title,body,labels,assignees,field_name_1,field_name_2,...
+title,description,labels,assignee,url
 ```
 
 Only the title is necessary to create an issue and therefore only the title column is mandatory.
+
+When exporting issues, the CSV will contain these fields, with the description field preserving newlines as "\n" characters to maintain CSV format integrity.
 
 ## 🤖 Disclaimer
 
