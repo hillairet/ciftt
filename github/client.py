@@ -2,7 +2,7 @@ import logging
 import sys
 from collections import deque
 from time import sleep, time
-from typing import Any, Deque, Dict, Optional
+from typing import Any, Deque, Dict, Optional, Tuple
 from urllib.parse import urljoin
 
 import requests
@@ -72,8 +72,14 @@ class GitHubClient(BaseModel):
                 f"GitHub API {method} {endpoint} request failed: "
                 f"Status: {response.status_code}\n{response.text}"
             )
+            # Handle rate limit exceeded (429)
+            if response.status_code in [429, 403]:
+                return self._handle_rate_limit(response, method, endpoint, **kwargs)
             # Don't exit the program, raise an exception instead
             response.raise_for_status()
+
+        # Update rate limit info from headers
+        self._update_rate_limits(response.headers)
 
         return response.json()
 
@@ -98,3 +104,46 @@ class GitHubClient(BaseModel):
 
         # Add the current time to the deque
         self._api_calls.append(current_time)
+
+    def _handle_rate_limit(self, response, method, endpoint, **kwargs) -> dict:
+        """Handle rate limit exceeded response by waiting and retrying."""
+        reset_time = int(response.headers.get("X-RateLimit-Reset", 0))
+        remaining = int(response.headers.get("X-RateLimit-Remaining", 0))
+        limit = int(response.headers.get("X-RateLimit-Limit", 60))
+
+        if remaining == 0 and reset_time > 0:
+            current_time = time()
+            wait_time = reset_time - current_time + 1  # Add 1 second buffer
+
+            if wait_time > 0:
+                logging.warning(
+                    f"GitHub API rate limit exceeded ({limit} requests). "
+                    f"Waiting for {wait_time:.1f} seconds until reset."
+                )
+                sleep(wait_time)
+
+                # Retry the request after waiting
+                return self._request(method, endpoint, **kwargs)
+
+        # If we can't determine when to retry or something else is wrong
+        response.raise_for_status()
+
+    def _update_rate_limits(self, headers):
+        """Update rate limit information from response headers."""
+        try:
+            remaining = int(headers.get("X-RateLimit-Remaining", 0))
+            limit = int(headers.get("X-RateLimit-Limit", 0))
+            reset_time = int(headers.get("X-RateLimit-Reset", 0))
+
+            if limit > 0:
+                # Only log when we're getting close to the limit
+                if remaining < limit * 0.1:  # Less than 10% remaining
+                    current_time = time()
+                    reset_in = max(0, reset_time - current_time)
+                    logging.warning(
+                        f"GitHub API rate limit warning: {remaining}/{limit} "
+                        f"requests remaining. Resets in {reset_in:.1f} seconds."
+                    )
+        except (ValueError, TypeError):
+            # If we can't parse the headers, just continue
+            pass
