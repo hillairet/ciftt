@@ -6,7 +6,8 @@ from typing import List, Union
 
 import pandas as pd
 
-from github import BaseIssue, NewIssue, UpdatedIssue, extract_issue_number
+from github import BaseIssue, NewIssue, UpdatedIssue
+from utils import extract_issue_number
 
 
 def transform_row_to_issue(row: pd.Series) -> BaseIssue:
@@ -21,18 +22,18 @@ def transform_row_to_issue(row: pd.Series) -> BaseIssue:
     """
     # Convert pandas Series to dict, removing NaN values
     row_dict = row.dropna().to_dict()
-    
+
     # Extract issue number from URL if present
     issue_number = extract_issue_number(row_dict.get("url"))
-    
+
     # Remove URL as it's not a field in the model
     if "url" in row_dict:
         row_dict.pop("url")
-    
+
     if issue_number:
         # Update existing issue
         row_dict["issue_number"] = issue_number
-        
+
         try:
             return UpdatedIssue.model_validate(row_dict)
         except Exception as e:
@@ -41,7 +42,7 @@ def transform_row_to_issue(row: pd.Series) -> BaseIssue:
         # Create new issue - title is required
         if "title" not in row_dict or row_dict.get("title") == "":
             raise ValueError("Title is required for new issues")
-        
+
         try:
             return NewIssue.model_validate(row_dict)
         except Exception as e:
