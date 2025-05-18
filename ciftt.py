@@ -114,6 +114,12 @@ def export_issues(
         "-i",
         help="Comma-separated list of issue numbers or ranges (e.g., '1,3-5,8')",
     ),
+    project_fields: str = typer.Option(
+        None,
+        "--fields",
+        "-f",
+        help="Comma-separated list of GitHub Project v2 fields to include in export",
+    ),
 ):
     """
     Export GitHub issues to a CSV file that can be used for updates.
@@ -169,13 +175,33 @@ def export_issues(
         typer.echo("⚠️ No issues found to export")
         raise typer.Exit(code=0)
 
+    # If project fields are requested, fetch them
+    project_field_data = {}
+    field_names = []
+    if project_fields:
+        field_names = [field.strip() for field in project_fields.split(",")]
+        typer.echo(f"🔍 Fetching project fields: {', '.join(field_names)}")
+
+        # Get issue numbers
+        issue_numbers = [issue["number"] for issue in issues_data]
+
+        try:
+            project_field_data = github_client.get_project_fields_for_issues(
+                owner, repo_name, issue_numbers, field_names
+            )
+            typer.echo(
+                f"✅ Successfully fetched project fields for {len(project_field_data)} issues"
+            )
+        except Exception as e:
+            typer.echo(f"⚠️ Warning: Failed to fetch project fields: {e}")
+
     # Create DataFrame from issues
     rows = []
     for issue in issues_data:
         # Replace newlines with \n in description to keep each issue on one line in CSV
         description = issue["body"] or ""
         description = description.replace("\r\n", "\\n").replace("\n", "\\n")
-        
+
         row = {
             "title": issue["title"],
             "description": description,
@@ -183,6 +209,14 @@ def export_issues(
             "assignee": issue["assignee"]["login"] if issue["assignee"] else "",
             "url": issue["html_url"],
         }
+
+        # Add project fields if available
+        if project_fields and issue["number"] in project_field_data:
+            for field_name in field_names:
+                row[field_name] = project_field_data[issue["number"]].get(
+                    field_name, ""
+                )
+
         rows.append(row)
 
     df = pd.DataFrame(rows)

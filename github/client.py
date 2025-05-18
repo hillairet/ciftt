@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Dict, Literal, Optional, Tuple
+from pathlib import Path
+from typing import Any, Dict, Literal, Optional, Tuple, List
 from urllib.parse import urljoin
 
 import requests
@@ -7,6 +8,9 @@ from pydantic import BaseModel
 
 from github.data import NewIssue, UpdatedIssue
 from github.rate_limit import RateLimitMixin
+
+# Load GraphQL queries
+PROJECT_FIELDS_QUERY = Path(__file__).parent.joinpath("queries", "project_fields.graphql").read_text()
 
 
 class GitHubClient(BaseModel, RateLimitMixin):
@@ -117,3 +121,73 @@ class GitHubClient(BaseModel, RateLimitMixin):
         self.update_rate_limits(response.headers)
 
         return response.json()
+        
+    def execute_graphql(self, query: str, variables: dict = None) -> dict:
+        """Execute a GraphQL query against the GitHub API."""
+        if variables is None:
+            variables = {}
+        
+        endpoint = "graphql"
+        data = {
+            "query": query,
+            "variables": variables
+        }
+        
+        return self._post_request(endpoint, data)
+
+    def get_project_fields_for_issues(self, owner: str, repo: str, issue_numbers: list, field_names: list) -> dict:
+        """
+        Fetch project fields for specific issues using GraphQL.
+        
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            issue_numbers: List of issue numbers
+            field_names: List of project field names to fetch
+            
+        Returns:
+            Dictionary mapping issue numbers to their project fields
+        """
+        variables = {
+            "owner": owner,
+            "repo": repo,
+            "issueNumbers": issue_numbers
+        }
+        
+        response = self.execute_graphql(PROJECT_FIELDS_QUERY, variables)
+        
+        # Process the response to extract the requested fields
+        result = {}
+        if "data" not in response or "repository" not in response["data"]:
+            return result
+            
+        issues = response["data"]["repository"]["issues"]["nodes"]
+        for issue in issues:
+            issue_number = issue["number"]
+            result[issue_number] = {}
+            
+            # Process project items for this issue
+            project_items = issue.get("projectItems", {}).get("nodes", [])
+            for project_item in project_items:
+                field_values = project_item.get("fieldValues", {}).get("nodes", [])
+                for field_value in field_values:
+                    if not field_value or "field" not in field_value or "name" not in field_value["field"]:
+                        continue
+                        
+                    field_name = field_value["field"]["name"]
+                    
+                    # Only include requested fields
+                    if field_name not in field_names:
+                        continue
+                        
+                    # Extract the value based on the field type
+                    if "text" in field_value:
+                        result[issue_number][field_name] = field_value["text"]
+                    elif "number" in field_value:
+                        result[issue_number][field_name] = field_value["number"]
+                    elif "date" in field_value:
+                        result[issue_number][field_name] = field_value["date"]
+                    elif "name" in field_value:
+                        result[issue_number][field_name] = field_value["name"]
+    
+        return result
