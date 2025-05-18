@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Literal, Optional, Tuple
 from urllib.parse import urljoin
 
 import requests
@@ -32,6 +32,45 @@ class GitHubClient(BaseModel, RateLimitMixin):
 
         return self._patch_request(endpoint, data)
 
+    def get_all_issues(
+        self, owner: str, repo: str, state: Literal["open", "closed", "all"] = "open"
+    ) -> list:
+        """Fetch all issues from a GitHub repository."""
+        endpoint = f"repos/{owner}/{repo}/issues"
+        params = {"state": state, "per_page": 100}
+
+        all_issues = []
+        page = 1
+
+        while True:
+            params["page"] = page
+            issues = self._get_request(endpoint, params)
+
+            if not issues:
+                break
+
+            all_issues.extend(issues)
+            page += 1
+
+            # If we got fewer issues than the page size, we've reached the end
+            if len(issues) < 100:
+                break
+
+        return all_issues
+
+    def get_issues_by_numbers(self, owner: str, repo: str, issue_numbers: list) -> list:
+        """Fetch specific issues from a GitHub repository by their numbers."""
+        all_issues = []
+        for issue_num in issue_numbers:
+            try:
+                endpoint = f"repos/{owner}/{repo}/issues/{issue_num}"
+                issue = self._get_request(endpoint)
+                all_issues.append(issue)
+            except Exception as e:
+                logging.warning(f"Failed to fetch issue #{issue_num}: {e}")
+
+        return all_issues
+
     def _get_request(self, endpoint: str, params: dict = None) -> dict:
         """Make a GET request to the GitHub API."""
         if params is None:
@@ -61,7 +100,9 @@ class GitHubClient(BaseModel, RateLimitMixin):
         if not 200 <= response.status_code < 300:
             # Handle rate limit exceeded (429)
             if response.status_code in [429, 403]:
-                return self.handle_rate_limit(response, method, endpoint, self._request, **kwargs)
+                return self.handle_rate_limit(
+                    response, method, endpoint, self._request, **kwargs
+                )
             logging.error(
                 f"GitHub API {method} {endpoint} request failed: "
                 f"Status: {response.status_code}\n{response.text}"
@@ -76,60 +117,3 @@ class GitHubClient(BaseModel, RateLimitMixin):
         self.update_rate_limits(response.headers)
 
         return response.json()
-
-    def get_all_issues(self, owner: str, repo: str, state: str = "open") -> list:
-        """
-        Fetch all issues from a GitHub repository.
-
-        Args:
-            owner: Repository owner
-            repo: Repository name
-            state: Issue state (open, closed, all)
-
-        Returns:
-            List of issue dictionaries
-        """
-        endpoint = f"repos/{owner}/{repo}/issues"
-        params = {"state": state, "per_page": 100}
-
-        all_issues = []
-        page = 1
-
-        while True:
-            params["page"] = page
-            issues = self._get_request(endpoint, params)
-
-            if not issues:
-                break
-
-            all_issues.extend(issues)
-            page += 1
-
-            # If we got fewer issues than the page size, we've reached the end
-            if len(issues) < 100:
-                break
-
-        return all_issues
-
-    def get_issues_by_numbers(self, owner: str, repo: str, issue_numbers: list) -> list:
-        """
-        Fetch specific issues from a GitHub repository by their numbers.
-
-        Args:
-            owner: Repository owner
-            repo: Repository name
-            issue_numbers: List of issue numbers to fetch
-
-        Returns:
-            List of issue dictionaries
-        """
-        all_issues = []
-        for issue_num in issue_numbers:
-            try:
-                endpoint = f"repos/{owner}/{repo}/issues/{issue_num}"
-                issue = self._get_request(endpoint)
-                all_issues.append(issue)
-            except Exception as e:
-                logging.warning(f"Failed to fetch issue #{issue_num}: {e}")
-
-        return all_issues
