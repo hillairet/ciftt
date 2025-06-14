@@ -10,6 +10,13 @@ Use the following packages:
 * pydantic for clients and data classes
 * pydantic-settings for the settings
 
+IMPORTANT: Avoid large number of indentation in a row by following these strategies:
+* Extract a function to move the code already indented to a new function where more indentation can be managed.
+* Use the Return Early pattern in functions
+* Use continue early in loops when possible
+
+Module imports should all be at the beginning of files.
+
 I use the following formatter and linter so respect their requirements:
 
 * flake8
