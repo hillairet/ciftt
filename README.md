@@ -66,6 +66,12 @@ python ciftt.py export-issues myorg/myrepo output.csv --issues "1,3-5,8"
 
 # Export all issues (including closed ones)
 python ciftt.py export-issues myorg/myrepo output.csv --all
+
+# Export issues with GitHub Project fields
+python ciftt.py export-issues myorg/myrepo output.csv --fields "Priority,Status,Sprint"
+
+# Export specific issues with project fields
+python ciftt.py export-issues myorg/myrepo output.csv --issues "1-10" --fields "Priority,Assignee,Due Date"
 ```
 
 ## 📄 CSV Format
@@ -78,6 +84,17 @@ title,description,labels,assignee,url
 Only the title is necessary to create an issue and therefore only the title column is mandatory.
 
 When exporting issues, the CSV will contain these fields, with the description field preserving newlines as "\n" characters to maintain CSV format integrity.
+
+### Including GitHub Project Fields
+
+When using the `--fields` option during export, CIFTT will fetch GitHub Project v2 field values and include them as additional columns in your CSV:
+
+```csv
+title,description,labels,assignee,url,Priority,Status,Sprint
+"Fix login bug","User cannot login with special characters","bug,high-priority","john","https://github.com/myorg/myrepo/issues/42","High","In Progress","Sprint 23"
+```
+
+This allows you to export issues with their current project field values, modify them in your spreadsheet, and then re-import to update the project fields.
 
 ## 🤖 Disclaimer
 
