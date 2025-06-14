@@ -6,6 +6,7 @@ from urllib.parse import urljoin
 import requests
 from pydantic import BaseModel
 
+from github.client_utils import extract_project_fields
 from github.data import NewIssue, UpdatedIssue
 from github.rate_limit import RateLimitMixin
 
@@ -150,54 +151,28 @@ class GitHubClient(BaseModel, RateLimitMixin):
             Dictionary mapping issue numbers to their project fields
         """
         result = {}
-        
+
         # Fetch project fields for each issue individually
         for issue_number in issue_numbers:
             variables = {"owner": owner, "repo": repo, "issueNumber": issue_number}
-            
+
             try:
                 response = self.execute_graphql(PROJECT_FIELDS_QUERY, variables)
-                
+
                 # Process the response to extract the requested fields
                 if "data" not in response or "repository" not in response["data"]:
                     continue
-                    
+
                 issue = response["data"]["repository"]["issue"]
                 if not issue:
                     continue
-                    
-                result[issue_number] = {}
 
-                # Process project items for this issue
-                project_items = issue.get("projectItems", {}).get("nodes", [])
-                for project_item in project_items:
-                    field_values = project_item.get("fieldValues", {}).get("nodes", [])
-                    for field_value in field_values:
-                        if (
-                            not field_value
-                            or "field" not in field_value
-                            or "name" not in field_value["field"]
-                        ):
-                            continue
+                result[issue_number] = extract_project_fields(issue, field_names)
 
-                        field_name = field_value["field"]["name"]
-
-                        # Only include requested fields
-                        if field_name not in field_names:
-                            continue
-
-                        # Extract the value based on the field type
-                        if "text" in field_value:
-                            result[issue_number][field_name] = field_value["text"]
-                        elif "number" in field_value:
-                            result[issue_number][field_name] = field_value["number"]
-                        elif "date" in field_value:
-                            result[issue_number][field_name] = field_value["date"]
-                        elif "name" in field_value:
-                            result[issue_number][field_name] = field_value["name"]
-                            
             except Exception as e:
-                logging.warning(f"Failed to fetch project fields for issue #{issue_number}: {e}")
+                logging.warning(
+                    f"Failed to fetch project fields for issue #{issue_number}: {e}"
+                )
                 continue
 
         return result
