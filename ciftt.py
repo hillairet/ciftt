@@ -3,6 +3,7 @@
 CIFTT - CSV Input for Feature Triage and Tracking
 A tool to create or update GitHub issues from CSV input.
 """
+import pandas as pd
 import typer
 
 from csv_data import CSVData
@@ -12,7 +13,8 @@ from github import (
     UpdatedIssue,
 )
 from settings import Settings
-from utils import extract_issue_number, parse_repo
+from transform import transform_csv_to_issues
+from utils import extract_issue_number, parse_issue_numbers, parse_repo
 
 app = typer.Typer(help="CIFTT - CSV Input for Feature Triage and Tracking")
 settings = Settings()
@@ -70,8 +72,6 @@ def import_issues(
     # Process issues (create or update)
     created_issues = []
     updated_issues = []
-
-    from transform import transform_csv_to_issues
 
     # Transform CSV data into issue instances
     issues = transform_csv_to_issues(csv_data.data)
@@ -145,8 +145,6 @@ def export_issues(
     issue_numbers = None
     if issues:
         try:
-            from utils import parse_issue_numbers
-
             issue_numbers = parse_issue_numbers(issues)
             typer.echo(f"🔢 Exporting specific issues: {issue_numbers}")
         except ValueError as e:
@@ -169,8 +167,6 @@ def export_issues(
         raise typer.Exit(code=1)
 
     # Transform issues to CSV format
-    import pandas as pd
-
     if not issues_data:
         typer.echo("⚠️ No issues found to export")
         raise typer.Exit(code=0)
