@@ -1,12 +1,19 @@
 import logging
-from typing import Any, Dict, Literal, Optional, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, Tuple
 from urllib.parse import urljoin
 
 import requests
 from pydantic import BaseModel
 
+from github.client_utils import extract_project_fields
 from github.data import NewIssue, UpdatedIssue
 from github.rate_limit import RateLimitMixin
+
+# Load GraphQL queries
+PROJECT_FIELDS_QUERY = (
+    Path(__file__).parent.joinpath("queries", "project_fields.graphql").read_text()
+)
 
 
 class GitHubClient(BaseModel, RateLimitMixin):
@@ -117,3 +124,55 @@ class GitHubClient(BaseModel, RateLimitMixin):
         self.update_rate_limits(response.headers)
 
         return response.json()
+
+    def execute_graphql(self, query: str, variables: dict = None) -> dict:
+        """Execute a GraphQL query against the GitHub API."""
+        if variables is None:
+            variables = {}
+
+        endpoint = "graphql"
+        data = {"query": query, "variables": variables}
+
+        return self._post_request(endpoint, data)
+
+    def get_project_fields_for_issues(
+        self, owner: str, repo: str, issue_numbers: list, field_names: list
+    ) -> dict:
+        """
+        Fetch project fields for specific issues using GraphQL.
+
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            issue_numbers: List of issue numbers
+            field_names: List of project field names to fetch
+
+        Returns:
+            Dictionary mapping issue numbers to their project fields
+        """
+        result = {}
+
+        # Fetch project fields for each issue individually
+        for issue_number in issue_numbers:
+            variables = {"owner": owner, "repo": repo, "issueNumber": issue_number}
+
+            try:
+                response = self.execute_graphql(PROJECT_FIELDS_QUERY, variables)
+
+                # Process the response to extract the requested fields
+                if "data" not in response or "repository" not in response["data"]:
+                    continue
+
+                issue = response["data"]["repository"]["issue"]
+                if not issue:
+                    continue
+
+                result[issue_number] = extract_project_fields(issue, field_names)
+
+            except Exception as e:
+                logging.warning(
+                    f"Failed to fetch project fields for issue #{issue_number}: {e}"
+                )
+                continue
+
+        return result
