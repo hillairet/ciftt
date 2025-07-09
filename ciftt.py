@@ -39,16 +39,12 @@ def import_issues(
         # Load and validate the CSV data
         csv_data = CSVData(csv_file)
         typer.echo(f"💾 Successfully loaded CSV with {len(csv_data.data)} rows")
-    except Exception as e:
-        typer.echo(f"❌ Error: {e}")
-        raise typer.Exit(code=1)
-
-    try:
         # Parse the repository string
         owner, repo_name = parse_repo(repo)
     except ValueError as e:
         typer.echo(f"❌ Error: {e}")
         raise typer.Exit(code=1)
+
     typer.echo(f"🎯 Target repository: {owner}/{repo_name}")
 
     if dry_run:
