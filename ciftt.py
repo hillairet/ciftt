@@ -6,8 +6,7 @@ A tool to create or update GitHub issues from CSV input.
 import pandas as pd
 import typer
 
-from commands.export_issues import export_issues
-from commands.import_issues import import_issues
+from commands import export_issues, import_issues
 
 app = typer.Typer(help="CIFTT - CSV Input for Feature Triage and Tracking")
 
