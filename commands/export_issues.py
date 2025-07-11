@@ -3,6 +3,7 @@ import typer
 
 from github import GitHubClient
 from settings import Settings
+from transform import transform_issues_to_dataframe
 from utils import parse_issue_numbers, parse_repo
 
 
@@ -29,7 +30,7 @@ def export_issues(
     Export GitHub issues to a CSV file that can be used for updates.
     """
     settings = Settings()
-    
+
     typer.echo(f"🔍 Exporting issues from repository: {repo}")
 
     try:
@@ -98,30 +99,7 @@ def export_issues(
             typer.echo(f"⚠️ Warning: Failed to fetch project fields: {e}")
 
     # Create DataFrame from issues
-    rows = []
-    for issue in issues_data:
-        # Replace newlines with \n in description to keep each issue on one line in CSV
-        description = issue["body"] or ""
-        description = description.replace("\r\n", "\\n").replace("\n", "\\n")
-
-        row = {
-            "title": issue["title"],
-            "description": description,
-            "labels": ",".join([label["name"] for label in issue["labels"]]),
-            "assignee": issue["assignee"]["login"] if issue["assignee"] else "",
-            "url": issue["html_url"],
-        }
-
-        # Add project fields if available
-        if project_fields and issue["number"] in project_field_data:
-            for field_name in field_names:
-                row[field_name] = project_field_data[issue["number"]].get(
-                    field_name, ""
-                )
-
-        rows.append(row)
-
-    df = pd.DataFrame(rows)
+    df = transform_issues_to_dataframe(issues_data, project_field_data, field_names)
 
     # Save to CSV
     try:
