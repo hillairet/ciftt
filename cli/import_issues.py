@@ -1,10 +1,12 @@
 import typer
 
-from csv_data import CSVData
 from github import GitHubClient, NewIssue, UpdatedIssue
 from settings import Settings
 from transform import transform_csv_to_issues
-from utils import extract_issue_number, parse_repo
+from utils import extract_issue_number
+
+from .csv_data import load_and_validate_csv
+from .github import validate_repo
 
 
 def import_issues(
@@ -20,18 +22,14 @@ def import_issues(
     Create or update GitHub issues from a CSV file.
     """
     settings = Settings()
-    
+
     typer.echo(f"🔍 Reading CSV file: {csv_file}")
 
-    try:
-        # Load and validate the CSV data
-        csv_data = CSVData(csv_file)
-        typer.echo(f"💾 Successfully loaded CSV with {len(csv_data.data)} rows")
-        # Parse the repository string
-        owner, repo_name = parse_repo(repo)
-    except ValueError as e:
-        typer.echo(f"❌ Error: {e}")
-        raise typer.Exit(code=1)
+    # Load and validate the CSV data
+    csv_data = load_and_validate_csv(csv_file)
+
+    # Parse the repository string
+    owner, repo_name = validate_repo(repo)
 
     typer.echo(f"🎯 Target repository: {owner}/{repo_name}")
 
