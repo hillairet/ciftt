@@ -3,9 +3,9 @@ import typer
 from github import GitHubClient, NewIssue, UpdatedIssue
 from settings import Settings
 from transform import transform_csv_to_issues
-from utils import extract_issue_number
 
 from .csv_data import load_and_validate_csv
+from .dry_run import perform_dry_run
 from .github import validate_repo
 
 
@@ -34,13 +34,7 @@ def import_issues(
     typer.echo(f"🎯 Target repository: {owner}/{repo_name}")
 
     if dry_run:
-        typer.echo("🧪 DRY RUN MODE: No changes will be made on GitHub")
-        for index, row in csv_data.data.iterrows():
-            issue_number = extract_issue_number(row.get("url"))
-            if issue_number:
-                typer.echo(f"Would update issue #{issue_number}: {row['title']}")
-            else:
-                typer.echo(f"Would create issue: {row['title']}")
+        perform_dry_run(csv_data)
         return
 
     # Initialize GitHub client
