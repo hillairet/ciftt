@@ -3,6 +3,7 @@ Utility functions for CIFTT.
 """
 from typing import Optional, Tuple
 import re
+import codecs
 
 
 def parse_repo(repo: str) -> Tuple[str, str]:
@@ -24,6 +25,25 @@ def extract_issue_number(url: str) -> Optional[int]:
     if match:
         return int(match.group(1))
     return None
+
+
+def safe_decode(x):
+    """
+    Safely decode Unicode escape sequences in a string.
+    
+    Args:
+        x: String that may contain Unicode escape sequences
+        
+    Returns:
+        Decoded string, or original string if decoding fails
+    """
+    if isinstance(x, str):
+        try:
+            return codecs.decode(x, "unicode_escape")
+        except UnicodeDecodeError:
+            # If decoding fails, return the original string
+            return x
+    return x
 
 
 def parse_issue_numbers(issues_str: str) -> list:

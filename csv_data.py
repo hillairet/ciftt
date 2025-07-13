@@ -3,11 +3,12 @@ CSV data handling module for CIFTT.
 Provides a standardized interface for working with CSV/TSV issue data.
 """
 
-import codecs
 import csv
 from pathlib import Path
 
 import pandas as pd
+
+from utils import safe_decode
 
 
 class CSVData:
@@ -51,11 +52,7 @@ class CSVData:
             self.data = pd.read_csv(self.filepath, delimiter=delimiter)
             # Handle \n, \t, \r, etc ... if description column exists
             if "description" in self.data.columns:
-                self.data["description"] = self.data["description"].apply(
-                    lambda x: (
-                        codecs.decode(x, "unicode_escape") if isinstance(x, str) else x
-                    )
-                )
+                self.data["description"] = self.data["description"].apply(safe_decode)
         except pd.errors.EmptyDataError:
             # Handle empty CSV files with no columns
             self.data = pd.DataFrame()
