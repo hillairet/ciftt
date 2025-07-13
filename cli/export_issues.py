@@ -8,6 +8,8 @@ from utils import parse_issue_numbers
 
 from .csv_data import save_df_to_csv
 from .github import init_github_client, validate_repo
+from .issues import fetch_issues_from_github, parse_provided_issue_numbers
+from .project_fields import fetch_github_project_fields
 
 
 def export_issues(
@@ -43,54 +45,17 @@ def export_issues(
     github_client = init_github_client()
 
     # Parse issue numbers if provided
-    issue_numbers = None
-    if issues:
-        try:
-            issue_numbers = parse_issue_numbers(issues)
-            typer.echo(f"🔢 Exporting specific issues: {issue_numbers}")
-        except ValueError as e:
-            typer.echo(f"❌ Error parsing issue numbers: {e}")
-            raise typer.Exit(code=1)
+    issue_numbers = parse_provided_issue_numbers(issues)
 
     # Fetch issues from GitHub
-    try:
-        if issue_numbers:
-            issues_data = github_client.get_issues_by_numbers(
-                owner, repo_name, issue_numbers
-            )
-        else:
-            state = "all" if all_issues else "open"
-            issues_data = github_client.get_all_issues(owner, repo_name, state=state)
-
-        typer.echo(f"📋 Found {len(issues_data)} issues")
-    except Exception as e:
-        typer.echo(f"❌ Failed to fetch issues: {e}")
-        raise typer.Exit(code=1)
-
-    # Transform issues to CSV format
-    if not issues_data:
-        typer.echo("⚠️ No issues found to export")
-        raise typer.Exit(code=0)
+    issues_data = fetch_issues_from_github(
+        github_client, owner, repo_name, issue_numbers, all_issues
+    )
 
     # If project fields are requested, fetch them
-    project_field_data = {}
-    field_names = []
-    if project_fields:
-        field_names = [field.strip() for field in project_fields.split(",")]
-        typer.echo(f"🔍 Fetching project fields: {', '.join(field_names)}")
-
-        # Get issue numbers
-        issue_numbers = [issue["number"] for issue in issues_data]
-
-        try:
-            project_field_data = github_client.get_project_fields_for_issues(
-                owner, repo_name, issue_numbers, field_names
-            )
-            typer.echo(
-                f"✅ Successfully fetched project fields for {len(project_field_data)} issues"
-            )
-        except Exception as e:
-            typer.echo(f"⚠️ Warning: Failed to fetch project fields: {e}")
+    project_field_data, field_names = fetch_github_project_fields(
+        github_client, owner, repo_name, issues_data, project_fields
+    )
 
     # Create DataFrame from issues
     df = transform_issues_to_dataframe(issues_data, project_field_data, field_names)
