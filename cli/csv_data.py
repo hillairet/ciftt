@@ -7,13 +7,13 @@ from csv_data import CSVData
 def load_and_validate_csv(csv_file: str) -> CSVData:
     """
     Load and validate CSV data from a file.
-    
+
     Args:
         csv_file: Path to the CSV file
-        
+
     Returns:
         CSVData instance with loaded data
-        
+
     Raises:
         typer.Exit: If CSV loading fails
     """
@@ -29,11 +29,11 @@ def load_and_validate_csv(csv_file: str) -> CSVData:
 def save_df_to_csv(df: pd.DataFrame, output_file: str) -> None:
     """
     Save DataFrame to CSV file.
-    
+
     Args:
         df: DataFrame to save
         output_file: Path to save the CSV file
-        
+
     Raises:
         typer.Exit: If CSV saving fails
     """
