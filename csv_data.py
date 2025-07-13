@@ -96,16 +96,18 @@ class CSVData:
                 "Data file is missing required 'title' column for new issues"
             )
 
-        # If there are new issues and a title column, ensure all new issues have non-empty titles
-        if has_new_issues and "title" in self.data.columns:
-            empty_titles = (
-                self.data["title"].isna() | (self.data["title"] == "")
-            ) & new_issues
+        if not (has_new_issues and "title" in self.data.columns):
+            return
 
-            if empty_titles.any():
-                empty_rows = list(
-                    self.data.index[empty_titles] + 1
-                )  # +1 for human-readable row numbers
-                raise ValueError(
-                    f"Empty title values found for new issues in rows: {empty_rows}"
-                )
+        # Ensure all new issues have non-empty titles
+        empty_titles = (
+            self.data["title"].isna() | (self.data["title"] == "")
+        ) & new_issues
+
+        if empty_titles.any():
+            empty_rows = list(
+                self.data.index[empty_titles] + 1
+            )  # +1 for human-readable row numbers
+            raise ValueError(
+                f"Empty title values found for new issues in rows: {empty_rows}"
+            )
