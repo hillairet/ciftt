@@ -38,26 +38,20 @@ def export_issues(
 
     typer.echo(f"🔍 Exporting issues from repository: {repo}")
 
-    # Validate and parse repository
     owner, repo_name = validate_repo(repo)
 
-    # Initialize GitHub client
     github_client = init_github_client()
 
-    # Parse issue numbers if provided
     issue_numbers = parse_provided_issue_numbers(issues)
 
-    # Fetch issues from GitHub
     issues_data = fetch_issues_from_github(
         github_client, owner, repo_name, issue_numbers, all_issues
     )
 
-    # If project fields are requested, fetch them
     project_field_data, field_names = fetch_github_project_fields(
         github_client, owner, repo_name, issues_data, project_fields
     )
 
-    # Create DataFrame from issues
     df = transform_issues_to_dataframe(issues_data, project_field_data, field_names)
 
     save_df_to_csv(df, output_file)
