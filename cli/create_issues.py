@@ -13,7 +13,7 @@ from .github import (
 from .issues import create_or_update_issues
 
 
-def import_issues(
+def create_issues(
     csv_file: str = typer.Argument(
         ..., help="Path to the CSV file containing issue data"
     ),
@@ -23,7 +23,7 @@ def import_issues(
     ),
 ):
     """
-    Create or update GitHub issues from a CSV file.
+    Create new GitHub issues from a CSV file.
     """
     typer.echo(f"🔍 Reading CSV file: {csv_file}")
 
