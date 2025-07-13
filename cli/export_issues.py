@@ -7,7 +7,12 @@ from transform import transform_issues_to_dataframe
 from utils import parse_issue_numbers
 
 from .csv_data import save_df_to_csv
-from .github import init_github_client, validate_repo
+from .github import (
+    init_github_client,
+    validate_repo,
+    validate_repository_access,
+    validate_token_scopes,
+)
 from .issues import fetch_issues_from_github, parse_provided_issue_numbers
 from .project_fields import fetch_github_project_fields
 
@@ -41,6 +46,12 @@ def export_issues(
     owner, repo_name = validate_repo(repo)
 
     github_client = init_github_client()
+
+    needed_scopes = ["repo"]
+    if project_fields:
+        needed_scopes.append("project")
+    validate_token_scopes(github_client, needed_scopes)
+    validate_repository_access(github_client, owner, repo_name)
 
     issue_numbers = parse_provided_issue_numbers(issues)
 

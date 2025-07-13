@@ -92,7 +92,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
         """Make a PATCH request to the GitHub API."""
         return self._request("PATCH", endpoint, json=data)
 
-    def _request(self, method: str, endpoint: str, **kwargs) -> dict:
+    def _request(self, method: str, endpoint: str, return_headers: bool = False, **kwargs) -> dict:
         """Make a request to the GitHub API with rate limiting."""
         headers = {
             "Accept": "application/vnd.github.v3+json",
@@ -108,7 +108,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
             # Handle rate limit exceeded (429)
             if response.status_code in [429, 403]:
                 return self.handle_rate_limit(
-                    response, method, endpoint, self._request, **kwargs
+                    response, method, endpoint, self._request, return_headers=return_headers, **kwargs
                 )
             logging.error(
                 f"GitHub API {method} {endpoint} request failed: "
@@ -123,6 +123,8 @@ class GitHubClient(BaseModel, RateLimitMixin):
         # Update rate limit info from headers
         self.update_rate_limits(response.headers)
 
+        if return_headers:
+            return response.json(), response.headers
         return response.json()
 
     def execute_graphql(self, query: str, variables: dict = None) -> dict:

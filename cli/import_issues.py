@@ -4,7 +4,12 @@ from transform import transform_csv_to_issues
 
 from .csv_data import load_and_validate_csv
 from .dry_run import perform_dry_run
-from .github import init_github_client, validate_repo
+from .github import (
+    init_github_client,
+    validate_repo,
+    validate_repository_access,
+    validate_token_scopes,
+)
 from .issues import create_or_update_issues
 
 
@@ -33,6 +38,9 @@ def import_issues(
         return
 
     github_client = init_github_client()
+
+    validate_token_scopes(github_client, ["repo"])
+    validate_repository_access(github_client, owner, repo_name)
 
     issues = transform_csv_to_issues(csv_data.data)
 

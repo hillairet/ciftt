@@ -55,6 +55,9 @@ You deserve better. Let the robot do the boring part.
 git clone https://github.com/hillairet/ciftt.git
 cd ciftt
 
+# Check your GitHub token and permissions
+python ciftt.py check-token
+
 # Import issues from CSV
 python ciftt.py import-issues input.csv myorg/myrepo
 
@@ -95,6 +98,22 @@ title,description,labels,assignee,url,Priority,Status,Sprint
 ```
 
 This allows you to export issues with their current project field values, modify them in your spreadsheet, and then re-import to update the project fields.
+
+## 🔐 Token Validation
+
+Before importing or exporting issues, you can validate your GitHub token:
+
+```bash
+python ciftt.py check-token
+```
+
+This command will:
+- ✅ Verify your token is valid and show the authenticated user
+- 🔑 Display your token's scopes (permissions)
+- 🏢 List authorized organizations (helpful for SSO troubleshooting)
+- 📊 Show current API rate limit status
+
+Unlike simple CSV import scripts, CIFTT automatically validates that your token has the required scopes (`repo` and `project`) and can access the target repository at the beginning of both import and export operations. This prevents frustrating 403 errors and provides clear guidance when permissions are missing or SSO needs to be enabled for an organization.
 
 ## 🤖 Disclaimer
 
