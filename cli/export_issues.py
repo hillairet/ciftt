@@ -4,7 +4,9 @@ import typer
 from github import GitHubClient
 from settings import Settings
 from transform import transform_issues_to_dataframe
-from utils import parse_issue_numbers, parse_repo
+from utils import parse_issue_numbers
+
+from .github import init_github_client, validate_repo
 
 
 def export_issues(
@@ -33,20 +35,11 @@ def export_issues(
 
     typer.echo(f"🔍 Exporting issues from repository: {repo}")
 
-    try:
-        # Parse the repository string
-        owner, repo_name = parse_repo(repo)
-    except ValueError as e:
-        typer.echo(f"❌ Error: {e}")
-        raise typer.Exit(code=1)
+    # Validate and parse repository
+    owner, repo_name = validate_repo(repo)
 
     # Initialize GitHub client
-    try:
-        github_client = GitHubClient(api_key=settings.github_token.get_secret_value())
-        typer.echo("🐙 Connected to GitHub API")
-    except Exception as e:
-        typer.echo(f"❌ Failed to initialize GitHub client: {e}")
-        raise typer.Exit(code=1)
+    github_client = init_github_client()
 
     # Parse issue numbers if provided
     issue_numbers = None
