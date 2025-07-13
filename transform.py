@@ -10,70 +10,84 @@ from github import BaseIssue, NewIssue, UpdatedIssue
 from utils import extract_issue_number
 
 
-def transform_row_to_issue(row: pd.Series) -> BaseIssue:
+def transform_csv_to_new_issues(data: pd.DataFrame) -> List[NewIssue]:
     """
-    Transform a CSV row into a GitHub issue instance.
-
-    Args:
-        row: A pandas Series representing a row from the CSV data
-
-    Returns:
-        A BaseIssue instance (either NewIssue or UpdatedIssue)
-    """
-    # Convert pandas Series to dict, removing NaN values
-    row_dict = row.dropna().to_dict()
-
-    # Extract issue number from URL if present
-    issue_number = extract_issue_number(row_dict.get("url"))
-
-    # Remove URL as it's not a field in the model
-    if "url" in row_dict:
-        row_dict.pop("url")
-
-    if issue_number:
-        # Update existing issue
-        row_dict["issue_number"] = issue_number
-
-        try:
-            return UpdatedIssue.model_validate(row_dict)
-        except Exception as e:
-            raise ValueError(f"Invalid update issue data: {e}")
-    else:
-        # Create new issue - title is required
-        if "title" not in row_dict or row_dict.get("title") == "":
-            raise ValueError("Title is required for new issues")
-
-        try:
-            return NewIssue.model_validate(row_dict)
-        except Exception as e:
-            raise ValueError(f"Invalid new issue data: {e}")
-
-
-def transform_csv_to_issues(data: pd.DataFrame) -> List[BaseIssue]:
-    """
-    Transform CSV data into a list of GitHub issue instances.
+    Transform CSV data into a list of new GitHub issue instances.
 
     Args:
         data: A pandas DataFrame containing the CSV data
 
     Returns:
-        A list of BaseIssue instances (either NewIssue or UpdatedIssue)
+        A list of NewIssue instances
     """
     issues = []
 
     for _, row in data.iterrows():
         try:
-            issue = transform_row_to_issue(row)
+            # Convert pandas Series to dict, removing NaN values
+            row_dict = row.dropna().to_dict()
+
+            # Remove URL as it's not a field in the model and shouldn't be present for new issues
+            if "url" in row_dict:
+                row_dict.pop("url")
+
+            # Title is required for new issues
+            if "title" not in row_dict or row_dict.get("title") == "":
+                raise ValueError("Title is required for new issues")
+
+            issue = NewIssue.model_validate(row_dict)
             issues.append(issue)
         except Exception as e:
             # Log the error and continue with the next row
-            print(f"Error transforming row: {e}")
+            print(f"Error transforming row to new issue: {e}")
             continue
 
     return issues
 
 
-def transform_issues_to_dataframe(issues_data: List[dict], project_field_data: dict = None, field_names: List[str] = None) -> pd.DataFrame:
+def transform_csv_to_updated_issues(data: pd.DataFrame) -> List[UpdatedIssue]:
+    """
+    Transform CSV data into a list of updated GitHub issue instances.
+
+    Args:
+        data: A pandas DataFrame containing the CSV data
+
+    Returns:
+        A list of UpdatedIssue instances
+    """
+    issues = []
+
+    for _, row in data.iterrows():
+        try:
+            # Convert pandas Series to dict, removing NaN values
+            row_dict = row.dropna().to_dict()
+
+            # Extract issue number from URL - required for updates
+            issue_number = extract_issue_number(row_dict.get("url"))
+            if not issue_number:
+                raise ValueError(
+                    "URL with issue number is required for updating issues"
+                )
+
+            # Remove URL as it's not a field in the model
+            row_dict.pop("url")
+            row_dict["issue_number"] = issue_number
+
+            issue = UpdatedIssue.model_validate(row_dict)
+            issues.append(issue)
+        except Exception as e:
+            # Log the error and continue with the next row
+            print(f"Error transforming row to updated issue: {e}")
+            continue
+
+    return issues
+
+
+def transform_issues_to_dataframe(
+    issues_data: List[dict],
+    project_field_data: dict = None,
+    field_names: List[str] = None,
+) -> pd.DataFrame:
     """
     Transform GitHub issues data into a pandas DataFrame for CSV export.
 
