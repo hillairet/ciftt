@@ -1,8 +1,8 @@
-def extract_project_fields(issue: dict, field_names: list) -> dict:
+def extract_project_fields(issue_gql_data: dict, field_names: list) -> dict:
     """Extract project fields from an issue's project items."""
     fields = {}
 
-    project_items = issue.get("projectItems", {}).get("nodes", [])
+    project_items = issue_gql_data.get("projectItems", {}).get("nodes", [])
     for project_item in project_items:
         field_values = project_item.get("fieldValues", {}).get("nodes", [])
         for field_value in field_values:
