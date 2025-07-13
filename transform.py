@@ -71,3 +71,41 @@ def transform_csv_to_issues(data: pd.DataFrame) -> List[BaseIssue]:
             continue
 
     return issues
+
+
+def transform_issues_to_dataframe(issues_data: List[dict], project_field_data: dict = None, field_names: List[str] = None) -> pd.DataFrame:
+    """
+    Transform GitHub issues data into a pandas DataFrame for CSV export.
+
+    Args:
+        issues_data: List of GitHub issue dictionaries
+        project_field_data: Optional dictionary of project field data by issue number
+        field_names: Optional list of project field names to include
+
+    Returns:
+        A pandas DataFrame ready for CSV export
+    """
+    rows = []
+    for issue in issues_data:
+        # Replace newlines with \n in description to keep each issue on one line in CSV
+        description = issue["body"] or ""
+        description = description.replace("\r\n", "\\n").replace("\n", "\\n")
+
+        row = {
+            "title": issue["title"],
+            "description": description,
+            "labels": ",".join([label["name"] for label in issue["labels"]]),
+            "assignee": issue["assignee"]["login"] if issue["assignee"] else "",
+            "url": issue["html_url"],
+        }
+
+        # Add project fields if available
+        if project_field_data and field_names and issue["number"] in project_field_data:
+            for field_name in field_names:
+                row[field_name] = project_field_data[issue["number"]].get(
+                    field_name, ""
+                )
+
+        rows.append(row)
+
+    return pd.DataFrame(rows)
