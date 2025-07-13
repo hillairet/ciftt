@@ -10,7 +10,7 @@ from .github import (
     validate_repository_access,
     validate_token_scopes,
 )
-from .issues import create_or_update_issues
+from .issues import update_issues_in_github
 
 
 def update_issues(
@@ -44,4 +44,4 @@ def update_issues(
 
     issues = transform_csv_to_issues(csv_data.data)
 
-    create_or_update_issues(github_client, owner, repo_name, issues)
+    update_issues_in_github(github_client, owner, repo_name, issues)
