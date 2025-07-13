@@ -26,7 +26,7 @@ def load_and_validate_csv(csv_file: str) -> CSVData:
         raise typer.Exit(code=1)
 
 
-def save_to_csv(df: pd.DataFrame, output_file: str) -> None:
+def save_df_to_csv(df: pd.DataFrame, output_file: str) -> None:
     """
     Save DataFrame to CSV file.
     

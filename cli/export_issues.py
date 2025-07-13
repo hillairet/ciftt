@@ -6,7 +6,7 @@ from settings import Settings
 from transform import transform_issues_to_dataframe
 from utils import parse_issue_numbers
 
-from .csv_data import save_to_csv
+from .csv_data import save_df_to_csv
 from .github import init_github_client, validate_repo
 
 
@@ -95,5 +95,4 @@ def export_issues(
     # Create DataFrame from issues
     df = transform_issues_to_dataframe(issues_data, project_field_data, field_names)
 
-    # Save to CSV
-    save_to_csv(df, output_file)
+    save_df_to_csv(df, output_file)
