@@ -6,6 +6,7 @@ from settings import Settings
 from transform import transform_issues_to_dataframe
 from utils import parse_issue_numbers
 
+from .csv_data import save_to_csv
 from .github import init_github_client, validate_repo
 
 
@@ -95,9 +96,4 @@ def export_issues(
     df = transform_issues_to_dataframe(issues_data, project_field_data, field_names)
 
     # Save to CSV
-    try:
-        df.to_csv(output_file, index=False)
-        typer.echo(f"✅ Successfully exported {len(df)} issues to {output_file}")
-    except Exception as e:
-        typer.echo(f"❌ Failed to write CSV file: {e}")
-        raise typer.Exit(code=1)
+    save_to_csv(df, output_file)
