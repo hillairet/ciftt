@@ -7,7 +7,7 @@ from utils import extract_issue_number
 def perform_dry_run(csv_data: CSVData) -> None:
     """
     Perform a dry run preview of what issues would be created or updated.
-    
+
     Args:
         csv_data: The CSV data containing issue information
     """

@@ -2,6 +2,7 @@
 Settings module for CIFTT.
 Handles configuration and environment variables.
 """
+
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -10,6 +11,7 @@ class Settings(BaseSettings):
     """
     Application settings loaded from environment variables.
     """
+
     # GitHub API token (required)
     github_token: SecretStr
 

@@ -1,6 +1,6 @@
 import typer
 
-from transform import transform_csv_to_issues
+from transform import transform_csv_to_new_issues
 
 from .csv_data import load_and_validate_csv
 from .dry_run import perform_dry_run
@@ -10,10 +10,10 @@ from .github import (
     validate_repository_access,
     validate_token_scopes,
 )
-from .issues import create_or_update_issues
+from .issues import create_issues_in_github
 
 
-def import_issues(
+def create_issues(
     csv_file: str = typer.Argument(
         ..., help="Path to the CSV file containing issue data"
     ),
@@ -23,7 +23,7 @@ def import_issues(
     ),
 ):
     """
-    Create or update GitHub issues from a CSV file.
+    Create new GitHub issues from a CSV file.
     """
     typer.echo(f"🔍 Reading CSV file: {csv_file}")
 
@@ -42,6 +42,6 @@ def import_issues(
     validate_token_scopes(github_client, ["repo"])
     validate_repository_access(github_client, owner, repo_name)
 
-    issues = transform_csv_to_issues(csv_data.data)
+    issues = transform_csv_to_new_issues(csv_data.data)
 
-    create_or_update_issues(github_client, owner, repo_name, issues)
+    create_issues_in_github(github_client, owner, repo_name, issues)

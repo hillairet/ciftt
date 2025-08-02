@@ -25,10 +25,10 @@ def fetch_github_project_fields(
     """
     project_field_data = {}
     field_names = []
-    
+
     if not project_fields:
         return project_field_data, field_names
-    
+
     field_names = [field.strip() for field in project_fields.split(",")]
     typer.echo(f"🔍 Fetching project fields: {', '.join(field_names)}")
 

@@ -1,15 +1,17 @@
 import logging
 import sys
 from time import sleep, time
-from typing import Dict, Callable, Any
+from typing import Any, Callable, Dict
 
 
 class RateLimitMixin:
     """Mixin class for handling API rate limits."""
-    
+
     _endpoint_retry_counts: Dict[str, int] = {}
-    
-    def handle_rate_limit(self, response, method: str, endpoint: str, request_func: Callable, **kwargs) -> dict:
+
+    def handle_rate_limit(
+        self, response, method: str, endpoint: str, request_func: Callable, **kwargs
+    ) -> dict:
         """Handle rate limit exceeded response by waiting and retrying."""
         # https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api#about-secondary-rate-limits
         if (
@@ -21,9 +23,13 @@ class RateLimitMixin:
             )
 
         # Handle primary rate limit
-        return self._handle_primary_rate_limit(response, method, endpoint, request_func, **kwargs)
+        return self._handle_primary_rate_limit(
+            response, method, endpoint, request_func, **kwargs
+        )
 
-    def _handle_primary_rate_limit(self, response, method: str, endpoint: str, request_func: Callable, **kwargs) -> dict:
+    def _handle_primary_rate_limit(
+        self, response, method: str, endpoint: str, request_func: Callable, **kwargs
+    ) -> dict:
         """Handle GitHub's primary rate limit by waiting until the reset time."""
         reset_time = int(response.headers.get("x-ratelimit-reset", 0))
         remaining = int(response.headers.get("x-ratelimit-remaining", 0))
@@ -75,7 +81,7 @@ class RateLimitMixin:
             print("🔥 Maximum retry attempts reached for secondary rate limit")
             print("  Stopping CIFTT due to persistent rate limiting")
             sys.exit(1)  # Exit the program with error code 1
-            
+
     def update_rate_limits(self, headers):
         """Update rate limit information from response headers."""
         try:
@@ -94,7 +100,7 @@ class RateLimitMixin:
                     )
         except (ValueError, TypeError):
             logging.warning("Couldn't parse the rate limit headers!")
-    
+
     def reset_retry_count(self, endpoint: str):
         """Reset the retry count for a specific endpoint."""
         if endpoint in self._endpoint_retry_counts:

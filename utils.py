@@ -1,9 +1,10 @@
 """
 Utility functions for CIFTT.
 """
-from typing import Optional, Tuple
-import re
+
 import codecs
+import re
+from typing import Optional, Tuple
 
 
 def parse_repo(repo: str) -> Tuple[str, str]:
@@ -30,10 +31,10 @@ def extract_issue_number(url: str) -> Optional[int]:
 def safe_decode(x):
     """
     Safely decode Unicode escape sequences in a string.
-    
+
     Args:
         x: String that may contain Unicode escape sequences
-        
+
     Returns:
         Decoded string, or original string if decoding fails
     """
@@ -49,28 +50,28 @@ def safe_decode(x):
 def parse_issue_numbers(issues_str: str) -> list:
     """
     Parse a string of comma-separated issue numbers and ranges into a list of integers.
-    
+
     Args:
         issues_str: String in format like '1,3-5,8'
-        
+
     Returns:
         List of integers representing issue numbers
-        
+
     Raises:
         ValueError: If the input string contains invalid issue numbers or ranges
     """
     if not issues_str:
         return None
-        
+
     issue_numbers = []
-    parts = issues_str.split(',')
-    
+    parts = issues_str.split(",")
+
     for part in parts:
         part = part.strip()
-        if '-' in part:
+        if "-" in part:
             # Handle range (e.g., "123-126")
             try:
-                start, end = map(int, part.split('-'))
+                start, end = map(int, part.split("-"))
                 issue_numbers.extend(range(start, end + 1))
             except ValueError:
                 raise ValueError(f"Invalid issue range: {part}")
@@ -80,5 +81,5 @@ def parse_issue_numbers(issues_str: str) -> list:
                 issue_numbers.append(int(part))
             except ValueError:
                 raise ValueError(f"Invalid issue number: {part}")
-            
+
     return issue_numbers
