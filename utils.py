@@ -83,3 +83,70 @@ def parse_issue_numbers(issues_str: str) -> list:
                 raise ValueError(f"Invalid issue number: {part}")
 
     return issue_numbers
+
+
+def parse_github_project_identifier(project_identifier: str) -> Tuple[str, str]:
+    """
+    Parse various GitHub project identifier formats to extract owner and project number.
+
+    Supported formats:
+    - Full URLs: https://github.com/users/owner/projects/123
+    - Full URLs: https://github.com/orgs/orgname/projects/456
+    - Short format: owner/projects/123
+    - Shortest format: owner/123
+
+    Args:
+        project_identifier: Project identifier in one of the supported formats
+
+    Returns:
+        Tuple of (owner/org, project_number)
+    """
+    # Pattern 1: Full GitHub URLs
+    url_pattern = r"https://github\.com/(?:users|orgs)/([^/]+)/projects/(\d+)"
+    match = re.match(url_pattern, project_identifier)
+    if match:
+        return match.group(1), match.group(2)
+
+    # Pattern 2: Short format - owner/projects/123
+    short_pattern = r"^([^/]+)/projects/(\d+)$"
+    match = re.match(short_pattern, project_identifier)
+    if match:
+        return match.group(1), match.group(2)
+
+    # Pattern 3: Shortest format - owner/123
+    shortest_pattern = r"^([^/]+)/(\d+)$"
+    match = re.match(shortest_pattern, project_identifier)
+    if match:
+        return match.group(1), match.group(2)
+
+    raise ValueError(
+        f"Invalid project identifier format: {project_identifier}\n"
+        f"Supported formats:\n"
+        f"  - https://github.com/users/owner/projects/123\n"
+        f"  - https://github.com/orgs/owner/projects/123\n"
+        f"  - owner/projects/123\n"
+        f"  - owner/123"
+    )
+
+
+def extract_repo_from_issue_url(issue_url: str) -> Tuple[str, str]:
+    """
+    Extract repository owner and name from a GitHub issue URL.
+
+    Args:
+        issue_url: GitHub issue URL like https://github.com/owner/repo/issues/123
+
+    Returns:
+        Tuple of (owner, repo_name)
+    """
+    # Match pattern: https://github.com/owner/repo/issues/123
+    pattern = r"https://github\.com/([^/]+)/([^/]+)/issues/\d+"
+
+    match = re.match(pattern, issue_url)
+    if not match:
+        raise ValueError(f"Invalid GitHub issue URL format: {issue_url}")
+
+    owner = match.group(1)
+    repo_name = match.group(2)
+
+    return owner, repo_name

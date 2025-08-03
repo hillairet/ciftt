@@ -1,4 +1,4 @@
-title,description,labels,assignees
+Title,Description,Labels,Assignees
 Fix login button on homepage,The login button is not working properly on the homepage,bug,john-doe
 Update documentation for API v2,Need to update the API documentation for version 2,documentation,jane-smith
 Add dark mode support,Implement dark mode theme for better user experience,"enhancement,ui",john-doe

@@ -3,7 +3,7 @@ from typing import List, Tuple
 import typer
 
 from github import GitHubClient, NewIssue, UpdatedIssue
-from utils import parse_issue_numbers
+from utils import extract_repo_from_issue_url, parse_issue_numbers
 
 
 def parse_provided_issue_numbers(issues: str) -> list:
@@ -110,18 +110,16 @@ def create_issues_in_github(
 
 def update_issues_in_github(
     github_client: GitHubClient,
-    owner: str,
-    repo_name: str,
     issues: List[UpdatedIssue],
+    target_project_number: str = None,
 ) -> List[dict]:
     """
-    Update existing GitHub issues.
+    Update existing GitHub issues and their project fields.
 
     Args:
         github_client: The GitHub client instance
-        owner: Repository owner
-        repo_name: Repository name
         issues: List of UpdatedIssue instances to update
+        target_project_number: Project number to update fields for (optional)
 
     Returns:
         List of updated issue data
@@ -129,12 +127,53 @@ def update_issues_in_github(
     updated_issues = []
 
     for issue in issues:
+        issue_number = issue.issue_number
+        issue_title = getattr(issue, "title", f"Issue #{issue_number}")
+
+        # Extract repository info from the issue URL
+        if not issue.url:
+            typer.echo(f"❌ No URL found for issue #{issue_number}")
+            continue
+
         try:
+            owner, repo_name = extract_repo_from_issue_url(issue.url)
+        except ValueError as e:
+            typer.echo(f"❌ Invalid URL for issue #{issue_number}: {e}")
+            continue
+
+        try:
+            # Update the GitHub issue first
             response = github_client.update_issue(owner, repo_name, issue)
             updated_issues.append(response)
             typer.echo(f"✅ Updated issue #{response['number']}: {response['title']}")
+
+            # Update project fields if present
+            if hasattr(issue, "project_fields") and issue.project_fields:
+                try:
+                    project_results = github_client.update_issue_project_fields(
+                        owner,
+                        repo_name,
+                        issue_number,
+                        issue.project_fields,
+                        target_project_number,
+                    )
+
+                    # Report successful field updates
+                    if project_results["updated_fields"]:
+                        updated_fields = list(project_results["updated_fields"].keys())
+                        typer.echo(
+                            f"  📊 Updated project fields: {', '.join(updated_fields)}"
+                        )
+
+                    # Report field update errors
+                    if project_results["errors"]:
+                        for field_name, error in project_results["errors"].items():
+                            typer.echo(f"  ⚠️ Field '{field_name}': {error}")
+
+                except Exception as e:
+                    typer.echo(f"  ⚠️ Failed to update project fields: {e}")
+
         except Exception as e:
-            issue_title = getattr(issue, "title", "Unknown")
             typer.echo(f"❌ Failed to update issue '{issue_title}': {e}")
 
     typer.echo(f"🎉 Updated {len(updated_issues)} issues successfully")

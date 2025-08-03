@@ -28,11 +28,11 @@ def transform_csv_to_new_issues(data: pd.DataFrame) -> List[NewIssue]:
             row_dict = row.dropna().to_dict()
 
             # Remove URL as it's not a field in the model and shouldn't be present for new issues
-            if "url" in row_dict:
-                row_dict.pop("url")
+            if "URL" in row_dict:
+                row_dict.pop("URL")
 
             # Title is required for new issues
-            if "title" not in row_dict or row_dict.get("title") == "":
+            if "Title" not in row_dict or row_dict.get("Title") == "":
                 raise ValueError("Title is required for new issues")
 
             issue = NewIssue.model_validate(row_dict)
@@ -45,33 +45,41 @@ def transform_csv_to_new_issues(data: pd.DataFrame) -> List[NewIssue]:
     return issues
 
 
-def transform_csv_to_updated_issues(data: pd.DataFrame) -> List[UpdatedIssue]:
+def transform_csv_to_updated_issues(csv_data) -> List[UpdatedIssue]:
     """
     Transform CSV data into a list of updated GitHub issue instances.
 
     Args:
-        data: A pandas DataFrame containing the CSV data
+        csv_data: CSVData instance containing the CSV data
 
     Returns:
         A list of UpdatedIssue instances
     """
     issues = []
 
-    for _, row in data.iterrows():
+    for index, row in csv_data.data.iterrows():
         try:
             # Convert pandas Series to dict, removing NaN values
             row_dict = row.dropna().to_dict()
 
             # Extract issue number from URL - required for updates
-            issue_number = extract_issue_number(row_dict.get("url"))
+            issue_number = extract_issue_number(row_dict.get("URL"))
             if not issue_number:
                 raise ValueError(
                     "URL with issue number is required for updating issues"
                 )
 
-            # Remove URL as it's not a field in the model
-            row_dict.pop("url")
+            # Keep URL field and set issue number
             row_dict["issue_number"] = issue_number
+
+            # Extract project fields from the CSV data
+            project_fields = csv_data.get_project_field_data(index)
+            if project_fields:
+                row_dict["project_fields"] = project_fields
+
+            # Remove project field columns from the main row_dict to avoid conflicts
+            for field_name in csv_data.project_field_columns:
+                row_dict.pop(field_name, None)
 
             issue = UpdatedIssue.model_validate(row_dict)
             issues.append(issue)
@@ -106,11 +114,11 @@ def transform_issues_to_dataframe(
         description = description.replace("\r\n", "\\n").replace("\n", "\\n")
 
         row = {
-            "title": issue["title"],
-            "description": description,
-            "labels": ",".join([label["name"] for label in issue["labels"]]),
-            "assignee": issue["assignee"]["login"] if issue["assignee"] else "",
-            "url": issue["html_url"],
+            "Title": issue["title"],
+            "Description": description,
+            "Labels": ",".join([label["name"] for label in issue["labels"]]),
+            "Assignee": issue["assignee"]["login"] if issue["assignee"] else "",
+            "URL": issue["html_url"],
         }
 
         # Add project fields if available

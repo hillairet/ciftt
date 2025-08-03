@@ -41,9 +41,10 @@ You deserve better. Let the robot do the boring part.
 |------------------------------------------------------------------------|----------------|
 | Create issues in a GitHub repository with basic fields                 | ✅ Done        |
 | Update basic fields of existing issues in a GitHub repository          | ✅ Done        |
-| Validate labels and assignees in the CSV before creating/updating      | 🛠️ In Progress |
-| Set GitHub Project fields when creating or updating issues             | 📝 To Do       |
+| Set GitHub Project v2 fields when updating issues                      | ✅ Done        |
+| Support flexible project identifier formats                            | ✅ Done        |
 | Validate GitHub Project field values in the CSV                        | 📝 To Do       |
+| Validate labels and assignees in the CSV before creating/updating      | 📝 To Do       |
 | Provide tips and examples to help prepare the CSV                      | 📝 To Do       |
 
 ---
@@ -58,8 +59,11 @@ cd ciftt
 # Check your GitHub token and permissions
 python ciftt.py check-token
 
-# Import issues from CSV
-python ciftt.py import-issues input.csv myorg/myrepo
+# Create new issues from CSV
+python ciftt.py create-issues input.csv myorg/myrepo
+
+# Update existing issues and their project fields from CSV
+python ciftt.py update-issues input.csv myorg/123
 
 # Export issues to CSV
 python ciftt.py export-issues myorg/myrepo output.csv
@@ -79,25 +83,57 @@ python ciftt.py export-issues myorg/myrepo output.csv --issues "1-10" --fields "
 
 ## 📄 CSV Format
 
-Your CSV should include headers like:
+### Creating Issues
+For creating new issues, your CSV should include headers like:
 ```csv
-title,description,labels,assignee,url
+Title,Description,Labels,Assignee
 ```
 
-Only the title is necessary to create an issue and therefore only the title column is mandatory.
+**Note:** Column names are case-sensitive. Use proper case (Title, Description, etc.).
+
+Only the `title` column is mandatory to create an issue.
+
+### Updating Issues  
+For updating existing issues and their project fields, your CSV should include:
+```csv
+Title,Description,Labels,Assignee,URL,Priority,Status,Sprint
+```
+
+**Note:** Column names are case-sensitive. Standard issue fields use proper case (Title, Description, Labels, Assignee, URL) while project field names match exactly as they appear in your GitHub Project.
+
+The `url` column is required for updates (to identify which issue to update), and any additional columns beyond standard issue fields are treated as GitHub Project v2 fields.
 
 When exporting issues, the CSV will contain these fields, with the description field preserving newlines as "\n" characters to maintain CSV format integrity.
 
-### Including GitHub Project Fields
+## 🎯 GitHub Project v2 Integration
 
+### Exporting with Project Fields
 When using the `--fields` option during export, CIFTT will fetch GitHub Project v2 field values and include them as additional columns in your CSV:
 
 ```csv
-title,description,labels,assignee,url,Priority,Status,Sprint
+Title,Description,Labels,Assignee,URL,Priority,Status,Sprint
 "Fix login bug","User cannot login with special characters","bug,high-priority","john","https://github.com/myorg/myrepo/issues/42","High","In Progress","Sprint 23"
 ```
 
-This allows you to export issues with their current project field values, modify them in your spreadsheet, and then re-import to update the project fields.
+### Updating Project Fields
+You can update GitHub Project v2 fields using the `update-issues` command. CIFTT automatically detects project field columns (any column that isn't a standard issue field) and updates them in the project.
+
+**Supported project identifier formats:**
+- Full URLs: `https://github.com/users/owner/projects/123`
+- Full URLs: `https://github.com/orgs/myorg/projects/456`  
+- Short format: `owner/projects/123`
+- Shortest format: `owner/123`
+
+```bash
+# Update issues and project fields using different identifier formats
+python ciftt.py update-issues updated_issues.csv owner/123
+python ciftt.py update-issues updated_issues.csv owner/projects/123
+python ciftt.py update-issues updated_issues.csv https://github.com/users/owner/projects/123
+```
+
+**Note:** Project field updates only work with `update-issues` (not `create-issues`) because newly created issues aren't immediately added to projects.
+
+This allows you to export issues with their current project field values, modify them in your spreadsheet, and then re-import to update both the issues and their project fields.
 
 ## 🔐 Token Validation
 
@@ -113,7 +149,9 @@ This command will:
 - 🏢 List authorized organizations (helpful for SSO troubleshooting)
 - 📊 Show current API rate limit status
 
-Unlike simple CSV import scripts, CIFTT automatically validates that your token has the required scopes (`repo` and `project`) and can access the target repository at the beginning of both import and export operations. This prevents frustrating 403 errors and provides clear guidance when permissions are missing or SSO needs to be enabled for an organization.
+Unlike simple CSV import scripts, CIFTT automatically validates that your token has the required scopes (`repo` and `project`) and can access the target repository/project at the beginning of operations. This prevents frustrating 403 errors and provides clear guidance when permissions are missing or SSO needs to be enabled for an organization.
+
+When using project field updates, CIFTT also validates that the specified GitHub Project exists and is accessible before processing any issues.
 
 ## 🤖 Disclaimer
 

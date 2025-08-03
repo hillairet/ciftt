@@ -22,6 +22,11 @@ def mock_github_client():
         "html_url": "https://github.com/owner/repo/issues/123",
     }
 
+    client.update_issue_project_fields.return_value = {
+        "updated_fields": {},
+        "errors": {},
+    }
+
     client._get_request.return_value = {"permissions": {"push": True}}
     client._request.return_value = ({}, {"X-OAuth-Scopes": "repo"})
 

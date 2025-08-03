@@ -13,8 +13,18 @@ def perform_dry_run(csv_data: CSVData) -> None:
     """
     typer.echo("🧪 DRY RUN MODE: No changes will be made on GitHub")
     for index, row in csv_data.data.iterrows():
-        issue_number = extract_issue_number(row.get("url"))
+        issue_number = extract_issue_number(row.get("URL"))
         if issue_number:
-            typer.echo(f"Would update issue #{issue_number}: {row['title']}")
+            typer.echo(f"Would update issue #{issue_number}: {row['Title']}")
+
+            # Show project fields that would be updated
+            project_fields = csv_data.get_project_field_data(index)
+            if project_fields:
+                field_updates = [
+                    f"{name}='{value}'" for name, value in project_fields.items()
+                ]
+                typer.echo(
+                    f"  📊 Would update project fields: {', '.join(field_updates)}"
+                )
         else:
-            typer.echo(f"Would create issue: {row['title']}")
+            typer.echo(f"Would create issue: {row['Title']}")

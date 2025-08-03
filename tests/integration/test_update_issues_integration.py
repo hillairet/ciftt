@@ -14,6 +14,12 @@ class TestUpdateIssuesIntegration:
         """Test successful updating of issues from CSV."""
         csv_file = str(fixtures_dir / "update_issues.csv")
 
+        # Mock project validation
+        mock_github_client.validate_project_exists.return_value = {
+            "title": "Test Project",
+            "type": "user",
+        }
+
         with patch(
             "cli.update_issues.init_github_client", return_value=mock_github_client
         ), patch("cli.update_issues.validate_token_scopes"), patch(
@@ -21,7 +27,7 @@ class TestUpdateIssuesIntegration:
         ):
 
             # This should not raise any exceptions
-            update_issues(csv_file, "owner/repo", dry_run=False)
+            update_issues(csv_file, "owner/123", dry_run=False)
 
             # Verify that update_issue was called for each row in the CSV
             assert mock_github_client.update_issue.call_count == 3
@@ -31,7 +37,7 @@ class TestUpdateIssuesIntegration:
         csv_file = str(fixtures_dir / "update_issues.csv")
 
         # Dry run should not require GitHub client
-        update_issues(csv_file, "owner/repo", dry_run=True)
+        update_issues(csv_file, "owner/123", dry_run=True)
 
         # Check that dry run output was printed
         captured = capsys.readouterr()
@@ -47,18 +53,24 @@ class TestUpdateIssuesIntegration:
         invalid_csv.write_text("title,description\nTest title,Test description")
 
         with pytest.raises(Exit):  # typer.Exit raises click.exceptions.Exit
-            update_issues(str(invalid_csv), "owner/repo", dry_run=False)
+            update_issues(str(invalid_csv), "owner/123", dry_run=False)
 
-    def test_update_issues_invalid_repo_format(self, fixtures_dir):
-        """Test handling of invalid repository format."""
+    def test_update_issues_invalid_project_format(self, fixtures_dir):
+        """Test handling of invalid project format."""
         csv_file = str(fixtures_dir / "update_issues.csv")
 
         with pytest.raises(Exit):  # typer.Exit raises click.exceptions.Exit
-            update_issues(csv_file, "invalid-repo-format", dry_run=False)
+            update_issues(csv_file, "invalid-project-format", dry_run=False)
 
     def test_update_issues_github_api_error(self, fixtures_dir, mock_github_client):
         """Test handling of GitHub API errors during issue updates."""
         csv_file = str(fixtures_dir / "update_issues.csv")
+
+        # Mock project validation
+        mock_github_client.validate_project_exists.return_value = {
+            "title": "Test Project",
+            "type": "user",
+        }
 
         # Mock GitHub client to raise an exception
         mock_github_client.update_issue.side_effect = Exception("API Error")
@@ -70,7 +82,7 @@ class TestUpdateIssuesIntegration:
         ):
 
             # Should handle the error gracefully and continue with other issues
-            update_issues(csv_file, "owner/repo", dry_run=False)
+            update_issues(csv_file, "owner/123", dry_run=False)
 
             # Verify that update_issue was attempted for each row
             assert mock_github_client.update_issue.call_count == 3
@@ -88,4 +100,62 @@ class TestUpdateIssuesIntegration:
         ), patch("cli.update_issues.validate_repository_access"):
 
             # Should handle invalid URLs gracefully
-            update_issues(str(invalid_csv), "owner/repo", dry_run=False)
+            with pytest.raises(Exit):  # Should exit when no valid URLs found
+                update_issues(str(invalid_csv), "owner/123", dry_run=False)
+
+    def test_update_issues_with_project_fields(self, tmp_path, mock_github_client):
+        """Test updating issues with project fields."""
+        # Create CSV with project fields
+        csv_with_fields = tmp_path / "project_fields.csv"
+        csv_with_fields.write_text(
+            "Title,URL,Priority,Status\n"
+            "Test Issue,https://github.com/owner/repo/issues/123,High,In Progress\n"
+        )
+
+        # Mock project validation
+        mock_github_client.validate_project_exists.return_value = {
+            "title": "Test Project",
+            "type": "user",
+        }
+
+        # Mock project field definitions
+        mock_github_client.get_project_field_definitions.return_value = {
+            "Priority": {"name": "Priority", "dataType": "SINGLE_SELECT"},
+            "Status": {"name": "Status", "dataType": "SINGLE_SELECT"},
+        }
+
+        # Mock project field update method
+        mock_github_client.update_issue_project_fields.return_value = {
+            "updated_fields": {"Priority": "High", "Status": "In Progress"},
+            "errors": {},
+        }
+
+        with patch(
+            "cli.update_issues.init_github_client", return_value=mock_github_client
+        ), patch("cli.update_issues.validate_token_scopes"), patch(
+            "cli.update_issues.validate_repository_access"
+        ):
+
+            # Should update both issue and project fields
+            update_issues(
+                str(csv_with_fields),
+                "https://github.com/users/owner/projects/123",
+                dry_run=False,
+            )
+
+            # Verify issue update was called
+            assert mock_github_client.update_issue.call_count == 1
+
+            # Verify project field update was called
+            assert mock_github_client.update_issue_project_fields.call_count == 1
+
+            # Check the project fields passed to the update method
+            call_args = mock_github_client.update_issue_project_fields.call_args
+            assert call_args[0][0] == "owner"  # owner
+            assert call_args[0][1] == "repo"  # repo
+            assert call_args[0][2] == 123  # issue_number
+
+            # Check the project fields data
+            project_fields = call_args[0][3]
+            assert project_fields["Priority"] == "High"
+            assert project_fields["Status"] == "In Progress"

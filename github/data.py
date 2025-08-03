@@ -1,4 +1,4 @@
-from typing import Any, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -8,9 +8,9 @@ class BaseIssue(BaseModel):
     Base class for GitHub issues with common fields.
     """
 
-    body: Optional[str] = Field(default=None, alias="description")
-    labels: Optional[List[str]] = None
-    assignees: Optional[List[str]] = None
+    body: Optional[str] = Field(default=None, alias=["description", "Description"])
+    labels: Optional[List[str]] = Field(default=None, alias="Labels")
+    assignees: Optional[List[str]] = Field(default=None, alias="Assignees")
 
     model_config = ConfigDict(
         populate_by_name=True  # Allow both alias and field name to be used
@@ -48,7 +48,7 @@ class NewIssue(BaseIssue):
     Represents a new GitHub issue to be created.
     """
 
-    title: str
+    title: str = Field(alias="Title")
 
 
 class UpdatedIssue(BaseIssue):
@@ -56,7 +56,9 @@ class UpdatedIssue(BaseIssue):
     Represents updates to an existing GitHub issue.
     """
 
-    title: Optional[str] = None
-    state: Optional[Literal["open", "closed"]] = None
+    title: Optional[str] = Field(default=None, alias="Title")
+    state: Optional[Literal["open", "closed"]] = Field(default=None, alias="State")
     state_reason: Optional[Literal["completed", "not_planned", "reopened"]] = None
     issue_number: int
+    project_fields: Optional[Dict[str, str]] = None
+    url: Optional[str] = Field(default=None, alias="URL")

@@ -66,7 +66,7 @@ pytest tests/integration/  # integration tests only
 # CLI usage examples
 python ciftt.py check-token
 python ciftt.py create-issues input.csv owner/repo
-python ciftt.py update-issues input.csv owner/repo
+python ciftt.py update-issues input.csv owner/123  # project format
 python ciftt.py export-issues owner/repo output.csv
 ```
 
@@ -79,24 +79,27 @@ python ciftt.py export-issues owner/repo output.csv
 
 ## Current Branch Context
 
-Working on `feature/split-create-and-update` branch which separates:
-- Issue creation (`cli/create_issues.py`) 
-- Issue updating (`cli/update_issues.py`)
-- Shared transformation logic (`transform.py`)
+Working on `feature/github-project-fields` branch which adds:
+- GitHub Project v2 field updates (`cli/update_issues.py`)
+- Project field detection in CSV data (`csv_data.py`)
+- GraphQL integration for Projects v2 (`github/client.py`)
+- Support for iteration fields like Sprint
 
 ## File Structure Notes
 
-- Sample CSV files in root: `sample_create.csv`, `sample_update.tsv`
+- Sample CSV files in root: `sample_create.csv`, `sample_update.tsv`, `sample_create_update.tsv`
 - GraphQL queries in `github/queries/`
 - Integration test fixtures in `tests/integration/fixtures/`
 - Virtual environment in `ENV/` (excluded from git)
 
 ## Important Implementation Details
 
-- CSV columns are case-insensitive (TITLE matches title)
-- Only `title` column is required for issue creation
-- Supports dry-run mode for testing
-- Rate limiting handled automatically
-- Validates GitHub token permissions before operations
-- Uses GitHub GraphQL API for Projects v2 fields
-- Uses GitHub REST API for basic issue operations
+- **Case Sensitivity**: CSV columns are case-sensitive (Title, Description, URL, etc. must use proper case)
+- **Required Columns**: Only `Title` column is required for issue creation; `URL` column required for updates
+- **Project Fields**: Any column not recognized as a standard issue field is treated as a GitHub Project v2 field
+- **Supported Project Field Types**: TEXT, NUMBER, SINGLE_SELECT, ITERATION (Sprint fields)
+- **Project Validation**: Validates project exists and fields are valid before processing issues
+- **Dry-run Mode**: Supports `--dry-run` flag for testing without making changes
+- **Rate Limiting**: GitHub API rate limiting handled automatically with retries
+- **Token Validation**: Validates GitHub token permissions (`repo` and `project` scopes) before operations
+- **API Usage**: Uses GitHub GraphQL API for Projects v2 fields, REST API for basic issue operations

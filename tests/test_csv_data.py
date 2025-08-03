@@ -17,7 +17,7 @@ def sample_csv_path():
         # Create sample data with only the title column
         sample_data = pd.DataFrame(
             {
-                "title": [
+                "Title": [
                     "Fix login button on homepage",
                     "Update documentation for API v2",
                     "Add dark mode support",
@@ -57,7 +57,7 @@ def test_load_minimal_csv(sample_csv_path):
     # Check that data was loaded correctly
     assert csv_data.data is not None
     assert len(csv_data.data) == 3
-    assert "title" in csv_data.data.columns
+    assert "Title" in csv_data.data.columns
 
     # Verify the titles were loaded correctly
     expected_titles = [
@@ -65,7 +65,7 @@ def test_load_minimal_csv(sample_csv_path):
         "Update documentation for API v2",
         "Add dark mode support",
     ]
-    assert csv_data.data["title"].tolist() == expected_titles
+    assert csv_data.data["Title"].tolist() == expected_titles
 
 
 def test_empty_csv_with_title(empty_csv_with_title_column):
@@ -83,29 +83,25 @@ def test_empty_csv_no_columns(empty_csv_no_columns):
 
 
 @pytest.fixture
-def case_insensitive_csv_path():
-    """Create a temporary CSV file with capitalized column names."""
+def case_sensitive_csv_path():
+    """Create a temporary CSV file with proper case column names."""
     with tempfile.TemporaryDirectory() as temp_dir:
         csv_path = Path(temp_dir) / "case_test.csv"
 
-        # Create sample data with capitalized column names
+        # Create sample data with proper case column names
         with open(csv_path, "w") as f:
-            f.write("TITLE,DESCRIPTION\n")
+            f.write("Title,Description\n")
             f.write("Test issue,This is a test\n")
 
         yield csv_path
 
 
-def test_case_insensitive_columns(case_insensitive_csv_path):
-    """Test that column names are matched case-insensitively."""
-    csv_data = CSVData(case_insensitive_csv_path)
+def test_case_sensitive_columns(case_sensitive_csv_path):
+    """Test that column names work with proper case."""
+    csv_data = CSVData(case_sensitive_csv_path)
 
-    # Check that data was loaded correctly despite capitalized column names
+    # Check that data was loaded correctly with proper case column names
     assert csv_data.data is not None
     assert len(csv_data.data) == 1
-    assert "title" in csv_data.data.columns  # Should be lowercase now
-    assert csv_data.data["title"].iloc[0] == "Test issue"
-
-    # Verify the column mapping was created
-    assert hasattr(csv_data, "column_map")
-    assert csv_data.column_map["title"] == "TITLE"
+    assert "Title" in csv_data.data.columns  # Should maintain original case
+    assert csv_data.data["Title"].iloc[0] == "Test issue"
