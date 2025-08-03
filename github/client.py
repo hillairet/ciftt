@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 import requests
 from pydantic import BaseModel
 
-from github.client_utils import extract_project_fields
+from github.client_utils import _extract_project_fields
 from github.data import NewIssue, ProjectFieldUpdateResult, ProjectFieldValue, ProjectInfo, UpdatedIssue
 from github.rate_limit import RateLimitMixin
 
@@ -182,7 +182,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
                 if not issue:
                     continue
 
-                result[issue_number] = extract_project_fields(issue, field_names)
+                result[issue_number] = _extract_project_fields(issue, field_names)
 
             except Exception as e:
                 logging.warning(
@@ -269,8 +269,8 @@ class GitHubClient(BaseModel, RateLimitMixin):
             ProjectFieldUpdateResult with update results for each field
         """
         from github.client_utils import (
-            extract_project_info_for_updates,
-            format_project_field_value,
+            _extract_project_info_for_updates,
+            _format_project_field_value,
         )
 
         if not project_fields:
@@ -278,7 +278,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
 
         # Get project information for this issue
         issue_data = self.get_project_item_info(owner, repo, issue_number)
-        projects_info = extract_project_info_for_updates(issue_data)
+        projects_info = _extract_project_info_for_updates(issue_data)
 
         if not projects_info:
             raise ValueError(f"Issue #{issue_number} is not in any GitHub Projects")
@@ -322,7 +322,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
 
             try:
                 # Format the value for GraphQL API
-                formatted_value = format_project_field_value(
+                formatted_value = _format_project_field_value(
                     field_type, field_value, field_options, field_iterations
                 )
 

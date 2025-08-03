@@ -10,7 +10,7 @@ from .dry_run import perform_dry_run
 from .issues import update_issues_in_github
 
 
-def validate_project_identifier(project_identifier: str) -> Tuple[str, str]:
+def _validate_project_identifier(project_identifier: str) -> Tuple[str, str]:
     """
     Validate and parse a GitHub project identifier.
 
@@ -31,7 +31,7 @@ def validate_project_identifier(project_identifier: str) -> Tuple[str, str]:
         raise typer.Exit(code=1)
 
 
-def extract_repositories_from_csv(csv_data) -> Set[Tuple[str, str]]:
+def _extract_repositories_from_csv(csv_data) -> Set[Tuple[str, str]]:
     """
     Extract unique repositories from issue URLs in CSV data.
 
@@ -81,11 +81,11 @@ def update_issues(
         typer.echo("📋 No project fields detected - updating issues only")
 
     # Parse and validate project identifier
-    project_owner, project_number = validate_project_identifier(project)
+    project_owner, project_number = _validate_project_identifier(project)
     typer.echo(f"🎯 Target project: {project_owner}/projects/{project_number}")
 
     # Extract repositories from issue URLs
-    repositories = extract_repositories_from_csv(csv_data)
+    repositories = _extract_repositories_from_csv(csv_data)
     if repositories:
         repo_list = [f"{owner}/{repo}" for owner, repo in repositories]
         typer.echo(f"📂 Repositories found in CSV: {', '.join(repo_list)}")

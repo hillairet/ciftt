@@ -10,7 +10,7 @@ from github.data import (
 )
 
 
-def extract_project_fields(issue_gql_data: dict, field_names: list) -> dict:
+def _extract_project_fields(issue_gql_data: dict, field_names: list) -> dict:
     """Extract project fields from an issue's project items."""
     fields = {}
 
@@ -44,7 +44,7 @@ def extract_project_fields(issue_gql_data: dict, field_names: list) -> dict:
     return fields
 
 
-def format_project_field_value(
+def _format_project_field_value(
     field_type: str,
     value: str,
     field_options: list = None,
@@ -116,7 +116,7 @@ def format_project_field_value(
         raise ValueError(f"Unsupported field type: {field_type}")
 
 
-def extract_project_info_for_updates(issue_data: dict) -> dict:
+def _extract_project_info_for_updates(issue_data: dict) -> dict:
     """
     Extract project information needed for updating fields.
 
