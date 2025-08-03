@@ -7,7 +7,7 @@ import requests
 from pydantic import BaseModel
 
 from github.client_utils import extract_project_fields
-from github.data import NewIssue, UpdatedIssue
+from github.data import NewIssue, ProjectFieldUpdateResult, ProjectFieldValue, ProjectInfo, UpdatedIssue
 from github.rate_limit import RateLimitMixin
 
 # Load GraphQL queries
@@ -225,7 +225,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
         return issue
 
     def update_project_field(
-        self, project_id: str, item_id: str, field_id: str, value: Dict[str, Any]
+        self, project_id: str, item_id: str, field_id: str, value: ProjectFieldValue
     ) -> dict:
         """
         Update a project field value for a specific project item.
@@ -234,7 +234,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
             project_id: GitHub project ID
             item_id: Project item ID
             field_id: Field ID to update
-            value: Field value in the format expected by GitHub GraphQL API
+            value: ProjectFieldValue Pydantic model with the field value
 
         Returns:
             Response from the GraphQL mutation
@@ -243,7 +243,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
             "projectId": project_id,
             "itemId": item_id,
             "fieldId": field_id,
-            "value": value,
+            "value": value.model_dump(exclude_unset=True),
         }
 
         response = self.execute_graphql(UPDATE_PROJECT_FIELD_MUTATION, variables)
@@ -261,7 +261,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
         issue_number: int,
         project_fields: Dict[str, str],
         project_number: str,
-    ) -> Dict[str, Any]:
+    ) -> ProjectFieldUpdateResult:
         """
         Update project fields for a specific issue.
 
@@ -273,7 +273,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
             project_number: Project number to update fields for
 
         Returns:
-            Dictionary with update results for each field
+            ProjectFieldUpdateResult with update results for each field
         """
         from github.client_utils import (
             extract_project_info_for_updates,
@@ -281,7 +281,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
         )
 
         if not project_fields:
-            return {"updated_fields": {}, "errors": {}}
+            return ProjectFieldUpdateResult()
 
         # Get project information for this issue
         issue_data = self.get_project_item_info(owner, repo, issue_number)
@@ -290,7 +290,8 @@ class GitHubClient(BaseModel, RateLimitMixin):
         if not projects_info:
             raise ValueError(f"Issue #{issue_number} is not in any GitHub Projects")
 
-        results = {"updated_fields": {}, "errors": {}}
+        updated_fields = {}
+        errors = {}
 
         # Filter to only the target project
         target_project_info = None
@@ -339,16 +340,19 @@ class GitHubClient(BaseModel, RateLimitMixin):
                 self.update_project_field(
                     project_id, item_id, field_id, formatted_value
                 )
-                results["updated_fields"][field_name] = field_value
+                updated_fields[field_name] = field_value
 
             except Exception as e:
-                results["errors"][field_name] = str(e)
+                errors[field_name] = str(e)
 
-        return results
+        return ProjectFieldUpdateResult(
+            updated_fields=updated_fields,
+            errors=errors
+        )
 
     def validate_project_exists(
         self, owner: str, project_number: str
-    ) -> Dict[str, Any]:
+    ) -> ProjectInfo:
         """
         Validate that a GitHub project exists and is accessible.
 
@@ -357,7 +361,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
             project_number: Project number (as string)
 
         Returns:
-            Dictionary with project information if found
+            ProjectInfo model with project information if found
 
         Raises:
             ValueError: If project is not found or not accessible
@@ -394,14 +398,14 @@ class GitHubClient(BaseModel, RateLimitMixin):
                 f"  - Token has 'project' scope"
             )
 
-        return {
-            "id": project_info["id"],
-            "title": project_info["title"],
-            "number": project_info["number"],
-            "url": project_info["url"],
-            "owner": owner,
-            "type": project_type,
-        }
+        return ProjectInfo(
+            id=project_info["id"],
+            title=project_info["title"],
+            number=project_info["number"],
+            url=project_info["url"],
+            owner=owner,
+            type=project_type,
+        )
 
     def get_project_field_definitions(
         self, owner: str, project_number: str

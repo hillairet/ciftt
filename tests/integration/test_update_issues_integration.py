@@ -5,6 +5,7 @@ import pytest
 from click.exceptions import Exit
 
 from cli.update_issues import update_issues
+from github.data import ProjectFieldUpdateResult, ProjectInfo
 
 
 class TestUpdateIssuesIntegration:
@@ -15,10 +16,14 @@ class TestUpdateIssuesIntegration:
         csv_file = str(fixtures_dir / "update_issues.csv")
 
         # Mock project validation
-        mock_github_client.validate_project_exists.return_value = {
-            "title": "Test Project",
-            "type": "user",
-        }
+        mock_github_client.validate_project_exists.return_value = ProjectInfo(
+            id="test-id",
+            title="Test Project", 
+            number=123,
+            url="https://github.com/users/owner/projects/123",
+            owner="owner",
+            type="user"
+        )
 
         with patch(
             "cli.update_issues.init_github_client", return_value=mock_github_client
@@ -67,10 +72,14 @@ class TestUpdateIssuesIntegration:
         csv_file = str(fixtures_dir / "update_issues.csv")
 
         # Mock project validation
-        mock_github_client.validate_project_exists.return_value = {
-            "title": "Test Project",
-            "type": "user",
-        }
+        mock_github_client.validate_project_exists.return_value = ProjectInfo(
+            id="test-id",
+            title="Test Project", 
+            number=123,
+            url="https://github.com/users/owner/projects/123",
+            owner="owner",
+            type="user"
+        )
 
         # Mock GitHub client to raise an exception
         mock_github_client.update_issue.side_effect = Exception("API Error")
@@ -113,10 +122,14 @@ class TestUpdateIssuesIntegration:
         )
 
         # Mock project validation
-        mock_github_client.validate_project_exists.return_value = {
-            "title": "Test Project",
-            "type": "user",
-        }
+        mock_github_client.validate_project_exists.return_value = ProjectInfo(
+            id="test-id",
+            title="Test Project", 
+            number=123,
+            url="https://github.com/users/owner/projects/123",
+            owner="owner",
+            type="user"
+        )
 
         # Mock project field definitions
         mock_github_client.get_project_field_definitions.return_value = {
@@ -125,10 +138,10 @@ class TestUpdateIssuesIntegration:
         }
 
         # Mock project field update method
-        mock_github_client.update_issue_project_fields.return_value = {
-            "updated_fields": {"Priority": "High", "Status": "In Progress"},
-            "errors": {},
-        }
+        mock_github_client.update_issue_project_fields.return_value = ProjectFieldUpdateResult(
+            updated_fields={"Priority": "High", "Status": "In Progress"},
+            errors={}
+        )
 
         with patch(
             "cli.update_issues.init_github_client", return_value=mock_github_client

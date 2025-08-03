@@ -114,7 +114,7 @@ def update_issues(
             project_owner, project_number
         )
         typer.echo(
-            f"✅ Project validated: {project_info['title']} ({project_info['type']})"
+            f"✅ Project validated: {project_info.title} ({project_info.type})"
         )
     except ValueError as e:
         typer.echo(f"❌ Project validation failed: {e}")

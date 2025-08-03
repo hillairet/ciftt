@@ -1,3 +1,15 @@
+from typing import Union
+
+from github.data import (
+    DateFieldValue,
+    IterationFieldValue,
+    NumberFieldValue,
+    ProjectFieldValue,
+    SingleSelectFieldValue,
+    TextFieldValue,
+)
+
+
 def extract_project_fields(issue_gql_data: dict, field_names: list) -> dict:
     """Extract project fields from an issue's project items."""
     fields = {}
@@ -37,7 +49,7 @@ def format_project_field_value(
     value: str,
     field_options: list = None,
     field_iterations: list = None,
-) -> dict:
+) -> ProjectFieldValue:
     """
     Format a field value for GitHub GraphQL API based on field type.
 
@@ -55,15 +67,15 @@ def format_project_field_value(
     value_str = str(value).strip()
 
     if field_type == "TEXT":
-        return {"text": value_str}
+        return TextFieldValue(text=value_str)
     elif field_type == "NUMBER":
         try:
-            return {"number": float(value_str)}
+            return NumberFieldValue(number=float(value_str))
         except ValueError:
             raise ValueError(f"Invalid number value: {value_str}")
     elif field_type == "DATE":
         # Expecting ISO date format (YYYY-MM-DD)
-        return {"date": value_str}
+        return DateFieldValue(date=value_str)
     elif field_type == "SINGLE_SELECT":
         if not field_options:
             raise ValueError("Single select field options are required")
@@ -81,7 +93,7 @@ def format_project_field_value(
                 f"Invalid option '{value_str}'. Valid options: {valid_options}"
             )
 
-        return {"singleSelectOptionId": option_id}
+        return SingleSelectFieldValue(singleSelectOptionId=option_id)
     elif field_type == "ITERATION":
         if not field_iterations:
             raise ValueError("Iteration field iterations are required")
@@ -99,7 +111,7 @@ def format_project_field_value(
                 f"Invalid iteration '{value_str}'. Valid iterations: {valid_iterations}"
             )
 
-        return {"iterationId": iteration_id}
+        return IterationFieldValue(iterationId=iteration_id)
     else:
         raise ValueError(f"Unsupported field type: {field_type}")
 

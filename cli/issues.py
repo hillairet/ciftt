@@ -159,15 +159,15 @@ def update_issues_in_github(
                     )
 
                     # Report successful field updates
-                    if project_results["updated_fields"]:
-                        updated_fields = list(project_results["updated_fields"].keys())
+                    if project_results.updated_fields:
+                        updated_fields = list(project_results.updated_fields.keys())
                         typer.echo(
                             f"  📊 Updated project fields: {', '.join(updated_fields)}"
                         )
 
                     # Report field update errors
-                    if project_results["errors"]:
-                        for field_name, error in project_results["errors"].items():
+                    if project_results.errors:
+                        for field_name, error in project_results.errors.items():
                             typer.echo(f"  ⚠️ Field '{field_name}': {error}")
 
                 except Exception as e:
