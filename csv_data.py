@@ -75,28 +75,55 @@ class CSVData:
         1. If there are any new issues (rows without a URL), the 'title' column must exist
         2. All new issues must have non-empty title values
         """
-        # Check if there are any new issues (rows without a URL)
+        new_issues_mask = self._identify_new_issues()
+        has_new_issues = new_issues_mask.any()
+        
+        self._validate_title_column_exists(has_new_issues)
+        
+        if has_new_issues and "Title" in self.data.columns:
+            self._validate_title_values(new_issues_mask)
+
+    def _identify_new_issues(self) -> pd.Series:
+        """
+        Identify which rows represent new issues (rows without URLs).
+        
+        Returns:
+            Boolean Series indicating which rows are new issues
+        """
         if "URL" in self.data.columns:
-            new_issues = self.data["URL"].isna() | (self.data["URL"] == "")
-            has_new_issues = new_issues.any()
+            return self.data["URL"].isna() | (self.data["URL"] == "")
         else:
             # If there's no URL column, all rows are considered new issues
-            has_new_issues = True
-            new_issues = pd.Series(True, index=self.data.index)
+            return pd.Series(True, index=self.data.index)
 
-        # If there are new issues, ensure the 'Title' column exists
+    def _validate_title_column_exists(self, has_new_issues: bool) -> None:
+        """
+        Validate that Title column exists when there are new issues.
+        
+        Args:
+            has_new_issues: Whether there are any new issues in the data
+            
+        Raises:
+            ValueError: If Title column is missing but required
+        """
         if has_new_issues and "Title" not in self.data.columns:
             raise ValueError(
                 "Data file is missing required 'Title' column for new issues"
             )
 
-        if not (has_new_issues and "Title" in self.data.columns):
-            return
-
-        # Ensure all new issues have non-empty titles
+    def _validate_title_values(self, new_issues_mask: pd.Series) -> None:
+        """
+        Validate that all new issues have non-empty title values.
+        
+        Args:
+            new_issues_mask: Boolean Series indicating which rows are new issues
+            
+        Raises:
+            ValueError: If any new issues have empty titles
+        """
         empty_titles = (
             self.data["Title"].isna() | (self.data["Title"] == "")
-        ) & new_issues
+        ) & new_issues_mask
 
         if empty_titles.any():
             empty_rows = list(

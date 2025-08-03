@@ -268,10 +268,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
         Returns:
             ProjectFieldUpdateResult with update results for each field
         """
-        from github.client_utils import (
-            _extract_project_info_for_updates,
-            _format_project_field_value,
-        )
+        from github.client_utils import _extract_project_info_for_updates
 
         if not project_fields:
             return ProjectFieldUpdateResult()
@@ -286,30 +283,53 @@ class GitHubClient(BaseModel, RateLimitMixin):
         updated_fields = {}
         errors = {}
 
-        # Filter to only the target project
-        target_project_info = None
-        for project_title, project_info in projects_info.items():
-            if str(project_info.get("project_number")) == str(project_number):
-                target_project_info = project_info
-                break
-
-        if not target_project_info:
-            available_numbers = [
-                str(info.get("project_number", "unknown"))
-                for info in projects_info.values()
-            ]
-            raise ValueError(
-                f"Issue #{issue_number} is not in project #{project_number}. "
-                f"Available projects: {', '.join(available_numbers)}"
-            )
+        # Find and validate the target project
+        target_project_info = self._find_target_project(
+            projects_info, project_number, issue_number
+        )
 
         project_id = target_project_info["project_id"]
         item_id = target_project_info["item_id"]
         available_fields = target_project_info["fields"]
 
+        # Update all project fields
+        self._update_project_fields(
+            project_fields, available_fields, project_id, item_id, 
+            project_number, updated_fields, errors
+        )
+
+        return ProjectFieldUpdateResult(
+            updated_fields=updated_fields,
+            errors=errors
+        )
+
+    def _update_project_fields(
+        self,
+        project_fields: Dict[str, str],
+        available_fields: dict,
+        project_id: str,
+        item_id: str,
+        project_number: str,
+        updated_fields: dict,
+        errors: dict
+    ) -> None:
+        """
+        Update all project fields for an issue.
+        
+        Args:
+            project_fields: Dictionary of field names to values to update
+            available_fields: Available fields in the project
+            project_id: GitHub project ID
+            item_id: Project item ID
+            project_number: Project number for error messages
+            updated_fields: Dictionary to store successfully updated fields
+            errors: Dictionary to store field update errors
+        """
+        from github.client_utils import _format_project_field_value
+
         for field_name, field_value in project_fields.items():
             if field_name not in available_fields:
-                results["errors"][
+                errors[
                     field_name
                 ] = f"Field '{field_name}' not found in project #{project_number}"
                 continue
@@ -338,9 +358,35 @@ class GitHubClient(BaseModel, RateLimitMixin):
             except Exception as e:
                 errors[field_name] = str(e)
 
-        return ProjectFieldUpdateResult(
-            updated_fields=updated_fields,
-            errors=errors
+    def _find_target_project(
+        self, projects_info: dict, project_number: str, issue_number: int
+    ) -> dict:
+        """
+        Find and validate the target project from available projects.
+        
+        Args:
+            projects_info: Dictionary of available projects
+            project_number: Target project number to find
+            issue_number: Issue number for error messages
+            
+        Returns:
+            Project info dictionary for the target project
+            
+        Raises:
+            ValueError: If target project is not found
+        """
+        for project_title, project_info in projects_info.items():
+            if str(project_info.get("project_number")) == str(project_number):
+                return project_info
+
+        # Target project not found - build helpful error message
+        available_numbers = [
+            str(info.get("project_number", "unknown"))
+            for info in projects_info.values()
+        ]
+        raise ValueError(
+            f"Issue #{issue_number} is not in project #{project_number}. "
+            f"Available projects: {', '.join(available_numbers)}"
         )
 
     def validate_project_exists(
