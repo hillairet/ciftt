@@ -81,29 +81,44 @@ python ciftt.py export-issues myorg/myrepo output.csv --fields "Priority,Status,
 python ciftt.py export-issues myorg/myrepo output.csv --issues "1-10" --fields "Priority,Assignee,Due Date"
 ```
 
-## 📄 CSV Format
+## 📄 File Format Support
+
+CIFTT supports both **CSV** (Comma-Separated Values) and **TSV** (Tab-Separated Values) files as input. Simply provide the file path with the appropriate extension (`.csv` or `.tsv`) and CIFTT will automatically detect and parse the format correctly.
+
+```bash
+# CSV files
+python ciftt.py create-issues issues.csv myorg/myrepo
+python ciftt.py update-issues issues.csv myorg/123
+
+# TSV files  
+python ciftt.py create-issues issues.tsv myorg/myrepo
+python ciftt.py update-issues issues.tsv myorg/123
+```
 
 ### Creating Issues
-For creating new issues, your CSV should include headers like:
+For creating new issues, your file should include headers like:
 ```csv
 Title,Description,Labels,Assignee
 ```
 
 **Note:** Column names are case-sensitive. Use proper case (Title, Description, etc.).
 
-Only the `title` column is mandatory to create an issue.
+Only the `Title` column is mandatory to create an issue.
 
 ### Updating Issues  
-For updating existing issues and their project fields, your CSV should include:
+For updating existing issues and their project fields, your file should include:
 ```csv
 Title,Description,Labels,Assignee,URL,Priority,Status,Sprint
 ```
 
 **Note:** Column names are case-sensitive. Standard issue fields use proper case (Title, Description, Labels, Assignee, URL) while project field names match exactly as they appear in your GitHub Project.
 
-The `url` column is required for updates (to identify which issue to update), and any additional columns beyond standard issue fields are treated as GitHub Project v2 fields.
+The `URL` column is required for updates (to identify which issue to update), and any additional columns beyond standard issue fields are treated as GitHub Project v2 fields.
 
-When exporting issues, the CSV will contain these fields, with the description field preserving newlines as "\n" characters to maintain CSV format integrity.
+**Format Notes:**
+- CSV files use commas as separators: `Title,Description,URL`
+- TSV files use tabs as separators: `Title	Description	URL`
+- When exporting, CIFTT always outputs CSV format with newlines preserved as "\n" characters
 
 ## 🎯 GitHub Project v2 Integration
 
