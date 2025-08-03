@@ -11,22 +11,15 @@ from github.data import NewIssue, ProjectFieldUpdateResult, ProjectFieldValue, P
 from github.rate_limit import RateLimitMixin
 
 # Load GraphQL queries
-PROJECT_FIELDS_QUERY = (
-    Path(__file__).parent.joinpath("queries", "project_fields.graphql").read_text()
-)
-GET_PROJECT_ITEM_INFO_QUERY = (
-    Path(__file__)
-    .parent.joinpath("queries", "get_project_item_info.graphql")
-    .read_text()
-)
-UPDATE_PROJECT_FIELD_MUTATION = (
-    Path(__file__)
-    .parent.joinpath("queries", "update_project_field.graphql")
-    .read_text()
-)
-VALIDATE_PROJECT_QUERY = (
-    Path(__file__).parent.joinpath("queries", "validate_project.graphql").read_text()
-)
+def _load_graphql_query(filename: str) -> str:
+    """Load a GraphQL query from the queries directory."""
+    return Path(__file__).parent.joinpath("queries", filename).read_text()
+
+
+PROJECT_FIELDS_QUERY = _load_graphql_query("project_fields.graphql")
+GET_PROJECT_ITEM_INFO_QUERY = _load_graphql_query("get_project_item_info.graphql")
+UPDATE_PROJECT_FIELD_MUTATION = _load_graphql_query("update_project_field.graphql")
+VALIDATE_PROJECT_QUERY = _load_graphql_query("validate_project.graphql")
 
 
 class GitHubClient(BaseModel, RateLimitMixin):

@@ -26,9 +26,9 @@ class TestUpdateIssuesIntegration:
         )
 
         with patch(
-            "cli.update_issues.init_github_client", return_value=mock_github_client
-        ), patch("cli.update_issues.validate_token_scopes"), patch(
-            "cli.update_issues.validate_repository_access"
+            "cli.common.init_github_client", return_value=mock_github_client
+        ), patch("cli.common.validate_token_scopes"), patch(
+            "cli.common.validate_repository_access"
         ):
 
             # This should not raise any exceptions
@@ -85,9 +85,9 @@ class TestUpdateIssuesIntegration:
         mock_github_client.update_issue.side_effect = Exception("API Error")
 
         with patch(
-            "cli.update_issues.init_github_client", return_value=mock_github_client
-        ), patch("cli.update_issues.validate_token_scopes"), patch(
-            "cli.update_issues.validate_repository_access"
+            "cli.common.init_github_client", return_value=mock_github_client
+        ), patch("cli.common.validate_token_scopes"), patch(
+            "cli.common.validate_repository_access"
         ):
 
             # Should handle the error gracefully and continue with other issues
@@ -104,9 +104,11 @@ class TestUpdateIssuesIntegration:
             "title,description,url\nTest title,Test description,not-a-github-url"
         )
 
-        with patch("cli.update_issues.init_github_client"), patch(
-            "cli.update_issues.validate_token_scopes"
-        ), patch("cli.update_issues.validate_repository_access"):
+        with patch(
+            "cli.common.init_github_client"
+        ), patch("cli.common.validate_token_scopes"), patch(
+            "cli.common.validate_repository_access"
+        ):
 
             # Should handle invalid URLs gracefully
             with pytest.raises(Exit):  # Should exit when no valid URLs found
@@ -144,9 +146,9 @@ class TestUpdateIssuesIntegration:
         )
 
         with patch(
-            "cli.update_issues.init_github_client", return_value=mock_github_client
-        ), patch("cli.update_issues.validate_token_scopes"), patch(
-            "cli.update_issues.validate_repository_access"
+            "cli.common.init_github_client", return_value=mock_github_client
+        ), patch("cli.common.validate_token_scopes"), patch(
+            "cli.common.validate_repository_access"
         ):
 
             # Should update both issue and project fields

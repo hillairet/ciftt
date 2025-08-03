@@ -5,13 +5,8 @@ import typer
 from transform import transform_csv_to_updated_issues
 from utils import extract_repo_from_issue_url, parse_github_project_identifier
 
-from .csv_data import load_and_validate_csv
+from .common import handle_cli_error, load_csv_for_command, setup_github_client_for_command, validate_project_fields_for_csv
 from .dry_run import perform_dry_run
-from .github import (
-    init_github_client,
-    validate_repository_access,
-    validate_token_scopes,
-)
 from .issues import update_issues_in_github
 
 
@@ -75,9 +70,7 @@ def update_issues(
     """
     Update existing GitHub issues and their project fields from a CSV file.
     """
-    typer.echo(f"🔍 Reading CSV file: {csv_file}")
-
-    csv_data = load_and_validate_csv(csv_file)
+    csv_data = load_csv_for_command(csv_file)
 
     # Show project field detection info
     if csv_data.has_project_fields():
@@ -104,9 +97,10 @@ def update_issues(
         perform_dry_run(csv_data)
         return
 
-    github_client = init_github_client()
-
-    validate_token_scopes(github_client, ["repo", "project"])
+    github_client = setup_github_client_for_command(
+        required_scopes=["repo", "project"],
+        repositories=repositories
+    )
 
     # Validate that the project exists and is accessible
     try:
@@ -117,45 +111,12 @@ def update_issues(
             f"✅ Project validated: {project_info.title} ({project_info.type})"
         )
     except ValueError as e:
-        typer.echo(f"❌ Project validation failed: {e}")
-        raise typer.Exit(code=1)
+        handle_cli_error("Project validation", e)
 
     # Validate project fields before processing issues
-    if csv_data.has_project_fields():
-        try:
-            field_definitions = github_client.get_project_field_definitions(
-                project_owner, project_number
-            )
+    validate_project_fields_for_csv(csv_data, github_client, project_owner, project_number)
 
-            # Check if all CSV project fields exist in the project
-            invalid_fields = []
-            valid_fields = []
-
-            for csv_field in csv_data.project_field_columns:
-                if csv_field in field_definitions:
-                    valid_fields.append(csv_field)
-                else:
-                    invalid_fields.append(csv_field)
-
-            if invalid_fields:
-                typer.echo(
-                    f"❌ Invalid project fields found: {', '.join(invalid_fields)}"
-                )
-                available_fields = list(field_definitions.keys())
-                typer.echo(
-                    f"📋 Available project fields: {', '.join(available_fields)}"
-                )
-                raise typer.Exit(code=1)
-            else:
-                typer.echo(f"✅ Project fields validated: {', '.join(valid_fields)}")
-
-        except ValueError as e:
-            typer.echo(f"❌ Project field validation failed: {e}")
-            raise typer.Exit(code=1)
-
-    # Validate access to all repositories found in CSV
-    for owner, repo_name in repositories:
-        validate_repository_access(github_client, owner, repo_name)
+    # Repository access already validated by setup_github_client_for_command
 
     issues = transform_csv_to_updated_issues(csv_data)
 
