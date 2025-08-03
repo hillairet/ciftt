@@ -52,7 +52,7 @@ CIFTT (CSV Input for Feature Triage and Tracking) is a Python CLI tool that auto
 # Development setup
 python -m venv ENV
 source ENV/bin/activate  # or ENV/bin/activate.fish
-pip install -e ".[dev]"
+pip install -e ".[dev]"  # installs project in development mode
 
 # Code quality checks
 black --exclude="ENV" .
@@ -60,8 +60,9 @@ isort --skip=ENV .
 flake8 --exclude=ENV
 
 # Testing
-pytest
+pytest                      # runs all tests
 pytest tests/integration/  # integration tests only
+pytest -k test_name        # run specific test
 
 # CLI usage examples
 python ciftt.py check-token

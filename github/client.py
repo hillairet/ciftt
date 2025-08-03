@@ -6,27 +6,20 @@ from urllib.parse import urljoin
 import requests
 from pydantic import BaseModel
 
-from github.client_utils import extract_project_fields
-from github.data import NewIssue, UpdatedIssue
+from github.client_utils import _extract_project_fields
+from github.data import NewIssue, ProjectFieldUpdateResult, ProjectFieldValue, ProjectInfo, UpdatedIssue
 from github.rate_limit import RateLimitMixin
 
 # Load GraphQL queries
-PROJECT_FIELDS_QUERY = (
-    Path(__file__).parent.joinpath("queries", "project_fields.graphql").read_text()
-)
-GET_PROJECT_ITEM_INFO_QUERY = (
-    Path(__file__)
-    .parent.joinpath("queries", "get_project_item_info.graphql")
-    .read_text()
-)
-UPDATE_PROJECT_FIELD_MUTATION = (
-    Path(__file__)
-    .parent.joinpath("queries", "update_project_field.graphql")
-    .read_text()
-)
-VALIDATE_PROJECT_QUERY = (
-    Path(__file__).parent.joinpath("queries", "validate_project.graphql").read_text()
-)
+def _load_graphql_query(filename: str) -> str:
+    """Load a GraphQL query from the queries directory."""
+    return Path(__file__).parent.joinpath("queries", filename).read_text()
+
+
+PROJECT_FIELDS_QUERY = _load_graphql_query("project_fields.graphql")
+GET_PROJECT_ITEM_INFO_QUERY = _load_graphql_query("get_project_item_info.graphql")
+UPDATE_PROJECT_FIELD_MUTATION = _load_graphql_query("update_project_field.graphql")
+VALIDATE_PROJECT_QUERY = _load_graphql_query("validate_project.graphql")
 
 
 class GitHubClient(BaseModel, RateLimitMixin):
@@ -189,7 +182,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
                 if not issue:
                     continue
 
-                result[issue_number] = extract_project_fields(issue, field_names)
+                result[issue_number] = _extract_project_fields(issue, field_names)
 
             except Exception as e:
                 logging.warning(
@@ -225,7 +218,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
         return issue
 
     def update_project_field(
-        self, project_id: str, item_id: str, field_id: str, value: Dict[str, Any]
+        self, project_id: str, item_id: str, field_id: str, value: ProjectFieldValue
     ) -> dict:
         """
         Update a project field value for a specific project item.
@@ -234,7 +227,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
             project_id: GitHub project ID
             item_id: Project item ID
             field_id: Field ID to update
-            value: Field value in the format expected by GitHub GraphQL API
+            value: ProjectFieldValue Pydantic model with the field value
 
         Returns:
             Response from the GraphQL mutation
@@ -243,7 +236,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
             "projectId": project_id,
             "itemId": item_id,
             "fieldId": field_id,
-            "value": value,
+            "value": value.model_dump(exclude_unset=True),
         }
 
         response = self.execute_graphql(UPDATE_PROJECT_FIELD_MUTATION, variables)
@@ -261,7 +254,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
         issue_number: int,
         project_fields: Dict[str, str],
         project_number: str,
-    ) -> Dict[str, Any]:
+    ) -> ProjectFieldUpdateResult:
         """
         Update project fields for a specific issue.
 
@@ -273,49 +266,70 @@ class GitHubClient(BaseModel, RateLimitMixin):
             project_number: Project number to update fields for
 
         Returns:
-            Dictionary with update results for each field
+            ProjectFieldUpdateResult with update results for each field
         """
-        from github.client_utils import (
-            extract_project_info_for_updates,
-            format_project_field_value,
-        )
+        from github.client_utils import _extract_project_info_for_updates
 
         if not project_fields:
-            return {"updated_fields": {}, "errors": {}}
+            return ProjectFieldUpdateResult()
 
         # Get project information for this issue
         issue_data = self.get_project_item_info(owner, repo, issue_number)
-        projects_info = extract_project_info_for_updates(issue_data)
+        projects_info = _extract_project_info_for_updates(issue_data)
 
         if not projects_info:
             raise ValueError(f"Issue #{issue_number} is not in any GitHub Projects")
 
-        results = {"updated_fields": {}, "errors": {}}
+        updated_fields = {}
+        errors = {}
 
-        # Filter to only the target project
-        target_project_info = None
-        for project_title, project_info in projects_info.items():
-            if str(project_info.get("project_number")) == str(project_number):
-                target_project_info = project_info
-                break
-
-        if not target_project_info:
-            available_numbers = [
-                str(info.get("project_number", "unknown"))
-                for info in projects_info.values()
-            ]
-            raise ValueError(
-                f"Issue #{issue_number} is not in project #{project_number}. "
-                f"Available projects: {', '.join(available_numbers)}"
-            )
+        # Find and validate the target project
+        target_project_info = self._find_target_project(
+            projects_info, project_number, issue_number
+        )
 
         project_id = target_project_info["project_id"]
         item_id = target_project_info["item_id"]
         available_fields = target_project_info["fields"]
 
+        # Update all project fields
+        self._update_project_fields(
+            project_fields, available_fields, project_id, item_id, 
+            project_number, updated_fields, errors
+        )
+
+        return ProjectFieldUpdateResult(
+            updated_fields=updated_fields,
+            errors=errors
+        )
+
+    def _update_project_fields(
+        self,
+        project_fields: Dict[str, str],
+        available_fields: dict,
+        project_id: str,
+        item_id: str,
+        project_number: str,
+        updated_fields: dict,
+        errors: dict
+    ) -> None:
+        """
+        Update all project fields for an issue.
+        
+        Args:
+            project_fields: Dictionary of field names to values to update
+            available_fields: Available fields in the project
+            project_id: GitHub project ID
+            item_id: Project item ID
+            project_number: Project number for error messages
+            updated_fields: Dictionary to store successfully updated fields
+            errors: Dictionary to store field update errors
+        """
+        from github.client_utils import _format_project_field_value
+
         for field_name, field_value in project_fields.items():
             if field_name not in available_fields:
-                results["errors"][
+                errors[
                     field_name
                 ] = f"Field '{field_name}' not found in project #{project_number}"
                 continue
@@ -328,7 +342,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
 
             try:
                 # Format the value for GraphQL API
-                formatted_value = format_project_field_value(
+                formatted_value = _format_project_field_value(
                     field_type, field_value, field_options, field_iterations
                 )
 
@@ -339,16 +353,45 @@ class GitHubClient(BaseModel, RateLimitMixin):
                 self.update_project_field(
                     project_id, item_id, field_id, formatted_value
                 )
-                results["updated_fields"][field_name] = field_value
+                updated_fields[field_name] = field_value
 
             except Exception as e:
-                results["errors"][field_name] = str(e)
+                errors[field_name] = str(e)
 
-        return results
+    def _find_target_project(
+        self, projects_info: dict, project_number: str, issue_number: int
+    ) -> dict:
+        """
+        Find and validate the target project from available projects.
+        
+        Args:
+            projects_info: Dictionary of available projects
+            project_number: Target project number to find
+            issue_number: Issue number for error messages
+            
+        Returns:
+            Project info dictionary for the target project
+            
+        Raises:
+            ValueError: If target project is not found
+        """
+        for project_title, project_info in projects_info.items():
+            if str(project_info.get("project_number")) == str(project_number):
+                return project_info
+
+        # Target project not found - build helpful error message
+        available_numbers = [
+            str(info.get("project_number", "unknown"))
+            for info in projects_info.values()
+        ]
+        raise ValueError(
+            f"Issue #{issue_number} is not in project #{project_number}. "
+            f"Available projects: {', '.join(available_numbers)}"
+        )
 
     def validate_project_exists(
         self, owner: str, project_number: str
-    ) -> Dict[str, Any]:
+    ) -> ProjectInfo:
         """
         Validate that a GitHub project exists and is accessible.
 
@@ -357,7 +400,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
             project_number: Project number (as string)
 
         Returns:
-            Dictionary with project information if found
+            ProjectInfo model with project information if found
 
         Raises:
             ValueError: If project is not found or not accessible
@@ -394,14 +437,14 @@ class GitHubClient(BaseModel, RateLimitMixin):
                 f"  - Token has 'project' scope"
             )
 
-        return {
-            "id": project_info["id"],
-            "title": project_info["title"],
-            "number": project_info["number"],
-            "url": project_info["url"],
-            "owner": owner,
-            "type": project_type,
-        }
+        return ProjectInfo(
+            id=project_info["id"],
+            title=project_info["title"],
+            number=project_info["number"],
+            url=project_info["url"],
+            owner=owner,
+            type=project_type,
+        )
 
     def get_project_field_definitions(
         self, owner: str, project_number: str

@@ -15,9 +15,9 @@ class TestCreateIssuesIntegration:
         csv_file = str(fixtures_dir / "create_issues.csv")
 
         with patch(
-            "cli.create_issues.init_github_client", return_value=mock_github_client
-        ), patch("cli.create_issues.validate_token_scopes"), patch(
-            "cli.create_issues.validate_repository_access"
+            "cli.common.init_github_client", return_value=mock_github_client
+        ), patch("cli.common.validate_token_scopes"), patch(
+            "cli.common.validate_repository_access"
         ):
 
             # This should not raise any exceptions
@@ -64,9 +64,9 @@ class TestCreateIssuesIntegration:
         mock_github_client.create_issue.side_effect = Exception("API Error")
 
         with patch(
-            "cli.create_issues.init_github_client", return_value=mock_github_client
-        ), patch("cli.create_issues.validate_token_scopes"), patch(
-            "cli.create_issues.validate_repository_access"
+            "cli.common.init_github_client", return_value=mock_github_client
+        ), patch("cli.common.validate_token_scopes"), patch(
+            "cli.common.validate_repository_access"
         ):
 
             # Should handle the error gracefully and continue with other issues

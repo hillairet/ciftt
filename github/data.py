@@ -62,3 +62,63 @@ class UpdatedIssue(BaseIssue):
     issue_number: int
     project_fields: Optional[Dict[str, str]] = None
     url: Optional[str] = Field(default=None, alias="URL")
+
+
+class ProjectInfo(BaseModel):
+    """
+    Represents GitHub Project v2 information.
+    """
+
+    id: str
+    title: str
+    number: int
+    url: str
+    owner: str
+    type: Literal["user", "organization"]
+
+
+class ProjectFieldUpdateResult(BaseModel):
+    """
+    Represents the result of updating project fields for an issue.
+    """
+
+    updated_fields: Dict[str, str] = Field(default_factory=dict)
+    errors: Dict[str, str] = Field(default_factory=dict)
+
+
+class ProjectFieldValue(BaseModel):
+    """
+    Base class for project field values. Different field types have different value structures.
+    """
+
+    pass
+
+
+class TextFieldValue(ProjectFieldValue):
+    """Text field value for GitHub Projects v2."""
+
+    text: str
+
+
+class NumberFieldValue(ProjectFieldValue):
+    """Number field value for GitHub Projects v2."""
+
+    number: float
+
+
+class DateFieldValue(ProjectFieldValue):
+    """Date field value for GitHub Projects v2."""
+
+    date: str
+
+
+class SingleSelectFieldValue(ProjectFieldValue):
+    """Single select field value for GitHub Projects v2."""
+
+    singleSelectOptionId: str
+
+
+class IterationFieldValue(ProjectFieldValue):
+    """Iteration field value for GitHub Projects v2."""
+
+    iterationId: str
