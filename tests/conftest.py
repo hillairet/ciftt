@@ -24,6 +24,12 @@ def mock_github_client():
         "html_url": "https://github.com/owner/repo/issues/123",
     }
 
+    client.create_issue_comment.return_value = {
+        "id": 12345,
+        "body": "Test comment",
+        "html_url": "https://github.com/owner/repo/issues/123#issuecomment-12345",
+    }
+
     client.update_issue_project_fields.return_value = ProjectFieldUpdateResult()
 
     client._get_request.return_value = {"permissions": {"push": True}}

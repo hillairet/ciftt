@@ -5,7 +5,12 @@ import typer
 from transform import transform_csv_to_updated_issues
 from utils import extract_repo_from_issue_url, parse_github_project_identifier
 
-from .common import handle_cli_error, load_csv_for_command, setup_github_client_for_command, validate_project_fields_for_csv
+from .common import (
+    handle_cli_error,
+    load_csv_for_command,
+    setup_github_client_for_command,
+    validate_project_fields_for_csv,
+)
 from .dry_run import perform_dry_run
 from .issues import update_issues_in_github
 
@@ -98,8 +103,7 @@ def update_issues(
         return
 
     github_client = setup_github_client_for_command(
-        required_scopes=["repo", "project"],
-        repositories=repositories
+        required_scopes=["repo", "project"], repositories=repositories
     )
 
     # Validate that the project exists and is accessible
@@ -107,14 +111,14 @@ def update_issues(
         project_info = github_client.validate_project_exists(
             project_owner, project_number
         )
-        typer.echo(
-            f"✅ Project validated: {project_info.title} ({project_info.type})"
-        )
+        typer.echo(f"✅ Project validated: {project_info.title} ({project_info.type})")
     except ValueError as e:
         handle_cli_error("Project validation", e)
 
     # Validate project fields before processing issues
-    validate_project_fields_for_csv(csv_data, github_client, project_owner, project_number)
+    validate_project_fields_for_csv(
+        csv_data, github_client, project_owner, project_number
+    )
 
     # Repository access already validated by setup_github_client_for_command
 
