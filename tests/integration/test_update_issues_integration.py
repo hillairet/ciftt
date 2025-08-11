@@ -18,11 +18,11 @@ class TestUpdateIssuesIntegration:
         # Mock project validation
         mock_github_client.validate_project_exists.return_value = ProjectInfo(
             id="test-id",
-            title="Test Project", 
+            title="Test Project",
             number=123,
             url="https://github.com/users/owner/projects/123",
             owner="owner",
-            type="user"
+            type="user",
         )
 
         with patch(
@@ -74,11 +74,11 @@ class TestUpdateIssuesIntegration:
         # Mock project validation
         mock_github_client.validate_project_exists.return_value = ProjectInfo(
             id="test-id",
-            title="Test Project", 
+            title="Test Project",
             number=123,
             url="https://github.com/users/owner/projects/123",
             owner="owner",
-            type="user"
+            type="user",
         )
 
         # Mock GitHub client to raise an exception
@@ -104,11 +104,9 @@ class TestUpdateIssuesIntegration:
             "title,description,url\nTest title,Test description,not-a-github-url"
         )
 
-        with patch(
-            "cli.common.init_github_client"
-        ), patch("cli.common.validate_token_scopes"), patch(
-            "cli.common.validate_repository_access"
-        ):
+        with patch("cli.common.init_github_client"), patch(
+            "cli.common.validate_token_scopes"
+        ), patch("cli.common.validate_repository_access"):
 
             # Should handle invalid URLs gracefully
             with pytest.raises(Exit):  # Should exit when no valid URLs found
@@ -126,11 +124,11 @@ class TestUpdateIssuesIntegration:
         # Mock project validation
         mock_github_client.validate_project_exists.return_value = ProjectInfo(
             id="test-id",
-            title="Test Project", 
+            title="Test Project",
             number=123,
             url="https://github.com/users/owner/projects/123",
             owner="owner",
-            type="user"
+            type="user",
         )
 
         # Mock project field definitions
@@ -140,9 +138,10 @@ class TestUpdateIssuesIntegration:
         }
 
         # Mock project field update method
-        mock_github_client.update_issue_project_fields.return_value = ProjectFieldUpdateResult(
-            updated_fields={"Priority": "High", "Status": "In Progress"},
-            errors={}
+        mock_github_client.update_issue_project_fields.return_value = (
+            ProjectFieldUpdateResult(
+                updated_fields={"Priority": "High", "Status": "In Progress"}, errors={}
+            )
         )
 
         with patch(

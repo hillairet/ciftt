@@ -30,8 +30,7 @@ def create_issues(
         return
 
     github_client = setup_github_client_for_command(
-        required_scopes=["repo"],
-        repositories=[(owner, repo_name)]
+        required_scopes=["repo"], repositories=[(owner, repo_name)]
     )
 
     issues = transform_csv_to_new_issues(csv_data.data)
