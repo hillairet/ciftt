@@ -1,0 +1,4 @@
+URL,Comment,Author,Date
+https://github.com/owner/repo/issues/123,This was originally reported in JIRA-456 with high priority,john.doe,2024-01-15
+https://github.com/owner/repo/issues/124,"Fixed in legacy system, migration complete",jane.smith,2024-01-16
+https://github.com/another/repo/issues/42,Simple comment without attribution,,

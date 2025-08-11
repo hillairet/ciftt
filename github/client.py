@@ -7,8 +7,15 @@ import requests
 from pydantic import BaseModel
 
 from github.client_utils import _extract_project_fields
-from github.data import NewIssue, ProjectFieldUpdateResult, ProjectFieldValue, ProjectInfo, UpdatedIssue
+from github.data import (
+    NewIssue,
+    ProjectFieldUpdateResult,
+    ProjectFieldValue,
+    ProjectInfo,
+    UpdatedIssue,
+)
 from github.rate_limit import RateLimitMixin
+
 
 # Load GraphQL queries
 def _load_graphql_query(filename: str) -> str:
@@ -44,6 +51,15 @@ class GitHubClient(BaseModel, RateLimitMixin):
         data = issue_update.model_dump(exclude_none=True)
 
         return self._patch_request(endpoint, data)
+
+    def create_issue_comment(
+        self, owner: str, repo: str, issue_number: int, body: str
+    ) -> dict:
+        """Create a comment on an existing issue."""
+        endpoint = f"repos/{owner}/{repo}/issues/{issue_number}/comments"
+        data = {"body": body}
+
+        return self._post_request(endpoint, data)
 
     def get_all_issues(
         self, owner: str, repo: str, state: Literal["open", "closed", "all"] = "open"
@@ -294,14 +310,16 @@ class GitHubClient(BaseModel, RateLimitMixin):
 
         # Update all project fields
         self._update_project_fields(
-            project_fields, available_fields, project_id, item_id, 
-            project_number, updated_fields, errors
+            project_fields,
+            available_fields,
+            project_id,
+            item_id,
+            project_number,
+            updated_fields,
+            errors,
         )
 
-        return ProjectFieldUpdateResult(
-            updated_fields=updated_fields,
-            errors=errors
-        )
+        return ProjectFieldUpdateResult(updated_fields=updated_fields, errors=errors)
 
     def _update_project_fields(
         self,
@@ -311,11 +329,11 @@ class GitHubClient(BaseModel, RateLimitMixin):
         item_id: str,
         project_number: str,
         updated_fields: dict,
-        errors: dict
+        errors: dict,
     ) -> None:
         """
         Update all project fields for an issue.
-        
+
         Args:
             project_fields: Dictionary of field names to values to update
             available_fields: Available fields in the project
@@ -329,9 +347,9 @@ class GitHubClient(BaseModel, RateLimitMixin):
 
         for field_name, field_value in project_fields.items():
             if field_name not in available_fields:
-                errors[
-                    field_name
-                ] = f"Field '{field_name}' not found in project #{project_number}"
+                errors[field_name] = (
+                    f"Field '{field_name}' not found in project #{project_number}"
+                )
                 continue
 
             field_info = available_fields[field_name]
@@ -363,15 +381,15 @@ class GitHubClient(BaseModel, RateLimitMixin):
     ) -> dict:
         """
         Find and validate the target project from available projects.
-        
+
         Args:
             projects_info: Dictionary of available projects
             project_number: Target project number to find
             issue_number: Issue number for error messages
-            
+
         Returns:
             Project info dictionary for the target project
-            
+
         Raises:
             ValueError: If target project is not found
         """
@@ -389,9 +407,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
             f"Available projects: {', '.join(available_numbers)}"
         )
 
-    def validate_project_exists(
-        self, owner: str, project_number: str
-    ) -> ProjectInfo:
+    def validate_project_exists(self, owner: str, project_number: str) -> ProjectInfo:
         """
         Validate that a GitHub project exists and is accessible.
 
