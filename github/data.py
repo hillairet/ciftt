@@ -1,8 +1,8 @@
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from utils import safe_decode
+from utils import extract_issue_number, safe_decode
 
 
 class BaseIssue(BaseModel):
@@ -61,6 +61,21 @@ class NewIssue(BaseIssue):
 
     title: str = Field(alias="Title")
 
+    @field_validator("title", mode="before")
+    @classmethod
+    def validate_title(cls, v: Any) -> str:
+        """Validate and normalize title field."""
+        if v is None:
+            raise ValueError("Title is required for new issues")
+
+        if isinstance(v, str):
+            v = v.strip()
+
+        if not v or (isinstance(v, str) and not v.strip()):
+            raise ValueError("Title cannot be empty")
+
+        return v
+
 
 class UpdatedIssue(BaseIssue):
     """
@@ -70,9 +85,38 @@ class UpdatedIssue(BaseIssue):
     title: Optional[str] = Field(default=None, alias="Title")
     state: Optional[Literal["open", "closed"]] = Field(default=None, alias="State")
     state_reason: Optional[Literal["completed", "not_planned", "reopened"]] = None
-    issue_number: int
+    issue_number: Optional[int] = None
     project_fields: Optional[Dict[str, str]] = None
     url: Optional[str] = Field(default=None, alias="URL")
+
+    @model_validator(mode="before")
+    @classmethod
+    def extract_issue_number_from_url(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract issue_number from URL if not explicitly provided."""
+        if not isinstance(values, dict):
+            return values
+
+        if "issue_number" in values and values.get("issue_number") is not None:
+            return values
+
+        url = values.get("url") or values.get("URL")
+        if not url:
+            raise ValueError("Either issue_number or URL with issue number is required for updating issues")
+
+        issue_num = extract_issue_number(url)
+        if not issue_num:
+            raise ValueError(f"Could not extract issue number from URL: {url}")
+
+        values["issue_number"] = issue_num
+        return values
+
+    @field_validator("issue_number", mode="after")
+    @classmethod
+    def validate_issue_number(cls, v: Optional[int]) -> int:
+        """Ensure issue_number is present after extraction."""
+        if v is None:
+            raise ValueError("issue_number is required for updating issues")
+        return v
 
 
 class ProjectInfo(BaseModel):

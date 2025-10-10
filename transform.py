@@ -7,7 +7,6 @@ from typing import List, Union
 import pandas as pd
 
 from github import BaseIssue, NewIssue, UpdatedIssue
-from utils import extract_issue_number
 
 
 def transform_csv_to_new_issues(data: pd.DataFrame) -> List[NewIssue]:
@@ -30,10 +29,6 @@ def transform_csv_to_new_issues(data: pd.DataFrame) -> List[NewIssue]:
             # Remove URL as it's not a field in the model and shouldn't be present for new issues
             if "URL" in row_dict:
                 row_dict.pop("URL")
-
-            # Title is required for new issues
-            if "Title" not in row_dict or row_dict.get("Title") == "":
-                raise ValueError("Title is required for new issues")
 
             issue = NewIssue.model_validate(row_dict)
             issues.append(issue)
@@ -61,16 +56,6 @@ def transform_csv_to_updated_issues(csv_data) -> List[UpdatedIssue]:
         try:
             # Convert pandas Series to dict, removing NaN values
             row_dict = row.dropna().to_dict()
-
-            # Extract issue number from URL - required for updates
-            issue_number = extract_issue_number(row_dict.get("URL"))
-            if not issue_number:
-                raise ValueError(
-                    "URL with issue number is required for updating issues"
-                )
-
-            # Keep URL field and set issue number
-            row_dict["issue_number"] = issue_number
 
             # Extract project fields from the CSV data
             project_fields = csv_data.get_project_field_data(index)
