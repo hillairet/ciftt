@@ -104,3 +104,5 @@ Working on `feature/github-project-fields` branch which adds:
 - **Rate Limiting**: GitHub API rate limiting handled automatically with retries
 - **Token Validation**: Validates GitHub token permissions (`repo` and `project` scopes) before operations
 - **API Usage**: Uses GitHub GraphQL API for Projects v2 fields, REST API for basic issue operations
+- **Testing Approach**: Write reusable unit tests instead of one-off CLI tests for better maintainability
+- **Control Flow**: Use early return pattern to avoid deep nesting and improve code readability
