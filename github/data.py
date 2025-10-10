@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 class BaseIssue(BaseModel):
@@ -8,7 +8,9 @@ class BaseIssue(BaseModel):
     Base class for GitHub issues with common fields.
     """
 
-    body: Optional[str] = Field(default=None, alias=["description", "Description"])
+    body: Optional[str] = Field(
+        default=None, validation_alias=AliasChoices("body", "description", "Description")
+    )
     labels: Optional[List[str]] = Field(default=None, alias="Labels")
     assignees: Optional[List[str]] = Field(default=None, alias="Assignees")
 
