@@ -174,3 +174,136 @@ class TestUpdateIssuesIntegration:
             project_fields = call_args[0][3]
             assert project_fields["Priority"] == "High"
             assert project_fields["Status"] == "In Progress"
+
+    def test_update_issues_without_project_no_fields(self, tmp_path, mock_github_client):
+        """Test updating issues without project option when CSV has no project fields."""
+        csv_no_fields = tmp_path / "no_project_fields.csv"
+        csv_no_fields.write_text(
+            "Title,Description,URL\n"
+            "Updated Title,Updated description,https://github.com/owner/repo/issues/123\n"
+        )
+
+        with patch(
+            "cli.common.init_github_client", return_value=mock_github_client
+        ), patch("cli.common.validate_token_scopes"), patch(
+            "cli.common.validate_repository_access"
+        ):
+
+            update_issues(str(csv_no_fields), project=None, dry_run=False)
+
+            assert mock_github_client.update_issue.call_count == 1
+            mock_github_client.validate_project_exists.assert_not_called()
+            mock_github_client.update_issue_project_fields.assert_not_called()
+
+    def test_update_issues_without_project_with_fields_warning(
+        self, tmp_path, mock_github_client, capsys
+    ):
+        """Test warning shown when CSV has project fields but no project option provided."""
+        csv_with_fields = tmp_path / "with_project_fields.csv"
+        csv_with_fields.write_text(
+            "Title,URL,Priority,Status\n"
+            "Test Issue,https://github.com/owner/repo/issues/123,High,Todo\n"
+        )
+
+        with patch(
+            "cli.common.init_github_client", return_value=mock_github_client
+        ), patch("cli.common.validate_token_scopes"), patch(
+            "cli.common.validate_repository_access"
+        ):
+
+            update_issues(str(csv_with_fields), project=None, dry_run=False)
+
+            captured = capsys.readouterr()
+            assert "⚠️  Warning: Project fields detected but no project provided" in captured.out
+            assert "Priority, Status" in captured.out
+            assert "💡 Tip: Use --project option" in captured.out
+
+            assert mock_github_client.update_issue.call_count == 1
+            mock_github_client.validate_project_exists.assert_not_called()
+
+    def test_update_issues_scope_requirements_without_project(self, tmp_path, capsys):
+        """Test that only 'repo' scope is required when project is not provided."""
+        csv_file = tmp_path / "simple.csv"
+        csv_file.write_text(
+            "Title,Description,URL\n"
+            "Test,Description,https://github.com/owner/repo/issues/123\n"
+        )
+
+        mock_client = Mock()
+        mock_client.update_issue.return_value = {
+            "number": 123,
+            "title": "Test",
+            "html_url": "https://github.com/owner/repo/issues/123",
+        }
+
+        with patch(
+            "cli.common.init_github_client", return_value=mock_client
+        ) as mock_init, patch("cli.common.validate_token_scopes") as mock_validate, patch(
+            "cli.common.validate_repository_access"
+        ):
+
+            update_issues(str(csv_file), project=None, dry_run=False)
+
+            mock_validate.assert_called_once_with(mock_client, ["repo"])
+
+    def test_update_issues_scope_requirements_with_project(
+        self, tmp_path, mock_github_client
+    ):
+        """Test that both 'repo' and 'project' scopes are required when project is provided."""
+        csv_file = tmp_path / "simple.csv"
+        csv_file.write_text(
+            "Title,Description,URL\n"
+            "Test,Description,https://github.com/owner/repo/issues/123\n"
+        )
+
+        mock_github_client.validate_project_exists.return_value = ProjectInfo(
+            id="test-id",
+            title="Test Project",
+            number=123,
+            url="https://github.com/users/owner/projects/123",
+            owner="owner",
+            type="user",
+        )
+
+        mock_github_client.get_project_field_definitions.return_value = {}
+
+        with patch(
+            "cli.common.init_github_client", return_value=mock_github_client
+        ), patch("cli.common.validate_token_scopes") as mock_validate, patch(
+            "cli.common.validate_repository_access"
+        ):
+
+            update_issues(str(csv_file), project="owner/123", dry_run=False)
+
+            mock_validate.assert_called_once_with(mock_github_client, ["repo", "project"])
+
+    def test_update_issues_dry_run_without_project(self, tmp_path, capsys):
+        """Test dry run mode without project option."""
+        csv_file = tmp_path / "simple.csv"
+        csv_file.write_text(
+            "Title,Description,URL\n"
+            "Updated Title,Updated desc,https://github.com/owner/repo/issues/456\n"
+        )
+
+        update_issues(str(csv_file), project=None, dry_run=True)
+
+        captured = capsys.readouterr()
+        assert "DRY RUN MODE" in captured.out
+        assert "Would update issue #456" in captured.out
+        assert "📋 No project fields detected - updating issues only" in captured.out
+
+    def test_update_issues_dry_run_with_project_fields_no_project(self, tmp_path, capsys):
+        """Test dry run shows warning when project fields present but no project."""
+        csv_file = tmp_path / "with_fields.csv"
+        csv_file.write_text(
+            "Title,URL,Status\n"
+            "Test,https://github.com/owner/repo/issues/789,In Progress\n"
+        )
+
+        update_issues(str(csv_file), project=None, dry_run=True)
+
+        captured = capsys.readouterr()
+        assert "DRY RUN MODE" in captured.out
+        assert "📊 Detected project fields: Status" in captured.out
+        assert "⚠️  Warning: Project fields detected but no project provided" in captured.out
+        assert "Status" in captured.out

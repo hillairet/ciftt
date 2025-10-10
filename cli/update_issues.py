@@ -60,29 +60,38 @@ def update_issues(
     csv_file: str = typer.Argument(
         ..., help="Path to the CSV file containing issue data"
     ),
-    project: str = typer.Argument(
-        ..., help="GitHub project (formats: owner/123, owner/projects/123, or full URL)"
+    project: str = typer.Option(
+        None, "--project", "-p", help="GitHub project (formats: owner/123, owner/projects/123, or full URL). Required only if updating project fields."
     ),
     dry_run: bool = typer.Option(
         False, "--dry-run", "-d", help="Print actions without executing them"
     ),
 ):
     """
-    Update existing GitHub issues and their project fields from a CSV file.
+    Update existing GitHub issues and optionally their project fields from a CSV file.
     """
     csv_data = load_csv_for_command(csv_file)
 
-    # Show project field detection info
+    # Show project field detection info and handle project requirement
     if csv_data.has_project_fields():
         typer.echo(
             f"📊 Detected project fields: {', '.join(csv_data.project_field_columns)}"
         )
+        if not project:
+            typer.echo(
+                f"⚠️  Warning: Project fields detected but no project provided. "
+                f"The following columns will be ignored: {', '.join(csv_data.project_field_columns)}"
+            )
+            typer.echo("💡 Tip: Use --project option to update project fields")
     else:
         typer.echo("📋 No project fields detected - updating issues only")
 
-    # Parse and validate project identifier
-    project_owner, project_number = _validate_project_identifier(project)
-    typer.echo(f"🎯 Target project: {project_owner}/projects/{project_number}")
+    # Parse and validate project identifier only if provided
+    project_owner = None
+    project_number = None
+    if project:
+        project_owner, project_number = _validate_project_identifier(project)
+        typer.echo(f"🎯 Target project: {project_owner}/projects/{project_number}")
 
     # Extract repositories from issue URLs
     repositories = _extract_repositories_from_csv(csv_data)
@@ -97,24 +106,31 @@ def update_issues(
         perform_dry_run(csv_data)
         return
 
+    # Determine required scopes based on whether project operations are needed
+    required_scopes = ["repo"]
+    if project:
+        required_scopes.append("project")
+
     github_client = setup_github_client_for_command(
-        required_scopes=["repo", "project"],
+        required_scopes=required_scopes,
         repositories=repositories
     )
 
-    # Validate that the project exists and is accessible
-    try:
-        project_info = github_client.validate_project_exists(
-            project_owner, project_number
-        )
-        typer.echo(
-            f"✅ Project validated: {project_info.title} ({project_info.type})"
-        )
-    except ValueError as e:
-        handle_cli_error("Project validation", e)
+    # Validate project and fields only if project is provided
+    if project:
+        # Validate that the project exists and is accessible
+        try:
+            project_info = github_client.validate_project_exists(
+                project_owner, project_number
+            )
+            typer.echo(
+                f"✅ Project validated: {project_info.title} ({project_info.type})"
+            )
+        except ValueError as e:
+            handle_cli_error("Project validation", e)
 
-    # Validate project fields before processing issues
-    validate_project_fields_for_csv(csv_data, github_client, project_owner, project_number)
+        # Validate project fields before processing issues
+        validate_project_fields_for_csv(csv_data, github_client, project_owner, project_number)
 
     # Repository access already validated by setup_github_client_for_command
 
