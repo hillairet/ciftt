@@ -8,8 +8,6 @@ from pathlib import Path
 
 import pandas as pd
 
-from utils import safe_decode
-
 
 class CSVData:
     """
@@ -51,9 +49,6 @@ class CSVData:
             # Use provided delimiter or detect it
             delimiter = self.delimiter or self._detect_delimiter()
             self.data = pd.read_csv(self.filepath, delimiter=delimiter)
-            # Handle \n, \t, \r, etc ... if description column exists
-            if "description" in self.data.columns:
-                self.data["description"] = self.data["description"].apply(safe_decode)
         except pd.errors.EmptyDataError:
             # Handle empty CSV files with no columns
             self.data = pd.DataFrame()

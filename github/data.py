@@ -2,6 +2,8 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
+from utils import safe_decode
+
 
 class BaseIssue(BaseModel):
     """
@@ -36,7 +38,14 @@ class BaseIssue(BaseModel):
 
         return v
 
-    # Use the same processing function for both fields
+    @classmethod
+    def _decode_escape_sequences(cls, v: Any) -> Optional[str]:
+        """Decode escape sequences like \\n, \\t, \\r in string values."""
+        if v is None:
+            return None
+        return safe_decode(v)
+
+    process_body = field_validator("body", mode="before")(_decode_escape_sequences)
     process_assignees = field_validator("assignees", mode="before")(
         _process_comma_separated_list
     )
