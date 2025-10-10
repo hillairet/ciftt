@@ -127,6 +127,28 @@ class TestNewIssueValidation:
                 'Description': 'No title provided'
             })
 
+    def test_new_issue_empty_title_rejected(self):
+        """Test that empty title strings are rejected."""
+        with pytest.raises(ValueError, match="Title cannot be empty"):
+            NewIssue.model_validate({
+                'Title': ''
+            })
+
+    def test_new_issue_whitespace_only_title_rejected(self):
+        """Test that whitespace-only titles are rejected."""
+        with pytest.raises(ValueError, match="Title cannot be empty"):
+            NewIssue.model_validate({
+                'Title': '   '
+            })
+
+    def test_new_issue_title_whitespace_stripped(self):
+        """Test that leading/trailing whitespace is stripped from titles."""
+        issue = NewIssue.model_validate({
+            'Title': '  Test Title  '
+        })
+
+        assert issue.title == 'Test Title'
+
     def test_new_issue_with_all_aliases(self):
         """Test creating NewIssue with multiple field aliases."""
         issue = NewIssue.model_validate({
@@ -140,3 +162,61 @@ class TestNewIssueValidation:
         assert 'Test description\nwith newlines' == issue.body
         assert issue.labels == ['bug', 'feature']
         assert issue.assignees == ['user1', 'user2']
+
+
+class TestUpdatedIssueValidation:
+    """Test UpdatedIssue model validation and URL extraction."""
+
+    def test_updated_issue_extracts_issue_number_from_url(self):
+        """Test that issue_number is automatically extracted from URL."""
+        issue = UpdatedIssue.model_validate({
+            'URL': 'https://github.com/owner/repo/issues/123',
+            'Title': 'Updated Title'
+        })
+
+        assert issue.issue_number == 123
+        assert issue.title == 'Updated Title'
+
+    def test_updated_issue_lowercase_url_alias(self):
+        """Test that lowercase 'url' alias also works for extraction."""
+        issue = UpdatedIssue.model_validate({
+            'url': 'https://github.com/owner/repo/issues/456',
+            'Description': 'Updated body'
+        })
+
+        assert issue.issue_number == 456
+
+    def test_updated_issue_explicit_issue_number(self):
+        """Test that explicitly provided issue_number is used."""
+        issue = UpdatedIssue.model_validate({
+            'issue_number': 789,
+            'Title': 'Updated Title'
+        })
+
+        assert issue.issue_number == 789
+
+    def test_updated_issue_invalid_url_format(self):
+        """Test that invalid URL format raises error."""
+        with pytest.raises(ValueError, match="Could not extract issue number from URL"):
+            UpdatedIssue.model_validate({
+                'URL': 'https://github.com/owner/repo',
+                'Title': 'Updated Title'
+            })
+
+    def test_updated_issue_no_url_or_issue_number(self):
+        """Test that missing both URL and issue_number raises error."""
+        with pytest.raises(ValueError, match="Either issue_number or URL with issue number is required"):
+            UpdatedIssue.model_validate({
+                'Title': 'Updated Title'
+            })
+
+    def test_updated_issue_with_project_fields(self):
+        """Test UpdatedIssue with project fields."""
+        issue = UpdatedIssue.model_validate({
+            'URL': 'https://github.com/owner/repo/issues/123',
+            'Title': 'Updated Title',
+            'project_fields': {'Sprint': 'Sprint 1', 'Priority': 'High'}
+        })
+
+        assert issue.issue_number == 123
+        assert issue.project_fields == {'Sprint': 'Sprint 1', 'Priority': 'High'}
