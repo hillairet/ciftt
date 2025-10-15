@@ -126,6 +126,12 @@ Title,Description,Labels,Assignee,URL,Priority,Status,Sprint
 - Project fields are **only updated** when the `--project` option is provided
 - A warning is shown if project field columns exist in the CSV but no `--project` is specified
 
+**Important: Labels are completely replaced, not merged**
+- When you specify labels in your CSV, they **completely replace** the existing labels on the issue
+- To preserve existing labels, include them in your CSV along with any new labels
+- Example: If an issue has label `bug` and your CSV contains `"enhancement,ui"`, the result will be only `enhancement` and `ui` (the `bug` label will be removed)
+- To keep all labels: Export issues first, edit the CSV to include both existing and new labels (e.g., `"bug,enhancement,ui"`), then update
+
 **Format Notes:**
 - CSV files use commas as separators: `Title,Description,URL`
 - TSV files use tabs as separators: `Title	Description	URL`
