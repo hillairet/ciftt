@@ -307,3 +307,66 @@ class TestUpdateIssuesIntegration:
         assert "📊 Detected project fields: Status" in captured.out
         assert "⚠️  Warning: Project fields detected but no project provided" in captured.out
         assert "Status" in captured.out
+
+    def test_update_issues_adds_labels_by_default(self, tmp_path, mock_github_client):
+        """Test that labels are added to existing ones by default."""
+        csv_file = tmp_path / "with_labels.csv"
+        csv_file.write_text(
+            "Title,Labels,URL\n"
+            "Test Issue,enhancement,https://github.com/owner/repo/issues/123\n"
+        )
+
+        with patch(
+            "cli.common.init_github_client", return_value=mock_github_client
+        ), patch("cli.common.validate_token_scopes"), patch(
+            "cli.common.validate_repository_access"
+        ):
+
+            update_issues(str(csv_file), project=None, dry_run=False, overwrite_labels=False)
+
+            mock_github_client.add_labels_to_issue.assert_called_once_with(
+                "owner", "repo", 123, ["enhancement"]
+            )
+            assert mock_github_client.update_issue.call_count == 1
+
+    def test_update_issues_overwrites_labels_with_flag(self, tmp_path, mock_github_client):
+        """Test that labels are replaced when --overwrite-labels is used."""
+        csv_file = tmp_path / "with_labels.csv"
+        csv_file.write_text(
+            "Title,Labels,URL\n"
+            "Test Issue,enhancement,https://github.com/owner/repo/issues/123\n"
+        )
+
+        with patch(
+            "cli.common.init_github_client", return_value=mock_github_client
+        ), patch("cli.common.validate_token_scopes"), patch(
+            "cli.common.validate_repository_access"
+        ):
+
+            update_issues(str(csv_file), project=None, dry_run=False, overwrite_labels=True)
+
+            mock_github_client.add_labels_to_issue.assert_not_called()
+            assert mock_github_client.update_issue.call_count == 1
+
+            call_args = mock_github_client.update_issue.call_args
+            issue_update = call_args[0][2]
+            assert issue_update.labels == ["enhancement"]
+
+    def test_update_issues_no_labels_skips_label_operations(self, tmp_path, mock_github_client):
+        """Test that no label operations occur when labels column is empty."""
+        csv_file = tmp_path / "no_labels.csv"
+        csv_file.write_text(
+            "Title,URL\n"
+            "Test Issue,https://github.com/owner/repo/issues/123\n"
+        )
+
+        with patch(
+            "cli.common.init_github_client", return_value=mock_github_client
+        ), patch("cli.common.validate_token_scopes"), patch(
+            "cli.common.validate_repository_access"
+        ):
+
+            update_issues(str(csv_file), project=None, dry_run=False, overwrite_labels=False)
+
+            mock_github_client.add_labels_to_issue.assert_not_called()
+            assert mock_github_client.update_issue.call_count == 1
