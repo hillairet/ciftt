@@ -66,6 +66,9 @@ def update_issues(
     dry_run: bool = typer.Option(
         False, "--dry-run", "-d", help="Print actions without executing them"
     ),
+    overwrite_labels: bool = typer.Option(
+        False, "--overwrite-labels", help="⚠️  Replace all existing labels instead of adding to them"
+    ),
 ):
     """
     Update existing GitHub issues and optionally their project fields from a CSV file.
@@ -136,4 +139,4 @@ def update_issues(
 
     issues = transform_csv_to_updated_issues(csv_data)
 
-    update_issues_in_github(github_client, issues, project_number)
+    update_issues_in_github(github_client, issues, project_number, overwrite_labels)

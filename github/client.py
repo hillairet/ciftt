@@ -45,6 +45,27 @@ class GitHubClient(BaseModel, RateLimitMixin):
 
         return self._patch_request(endpoint, data)
 
+    def add_labels_to_issue(
+        self, owner: str, repo: str, issue_number: int, labels: List[str]
+    ) -> dict:
+        """
+        Add labels to an existing issue without removing existing labels.
+        Uses POST method to append labels rather than replace them.
+
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number
+            labels: List of label names to add
+
+        Returns:
+            Updated issue data from GitHub API
+        """
+        endpoint = f"repos/{owner}/{repo}/issues/{issue_number}/labels"
+        data = {"labels": labels}
+
+        return self._post_request(endpoint, data)
+
     def get_all_issues(
         self, owner: str, repo: str, state: Literal["open", "closed", "all"] = "open"
     ) -> list:

@@ -112,6 +112,7 @@ def update_issues_in_github(
     github_client: GitHubClient,
     issues: List[UpdatedIssue],
     target_project_number: str = None,
+    overwrite_labels: bool = False,
 ) -> List[dict]:
     """
     Update existing GitHub issues and their project fields.
@@ -120,6 +121,7 @@ def update_issues_in_github(
         github_client: The GitHub client instance
         issues: List of UpdatedIssue instances to update
         target_project_number: Project number to update fields for (optional)
+        overwrite_labels: If True, replace all labels. If False (default), add to existing labels.
 
     Returns:
         List of updated issue data
@@ -142,8 +144,24 @@ def update_issues_in_github(
             continue
 
         try:
-            # Update the GitHub issue first
-            response = github_client.update_issue(owner, repo_name, issue)
+            # Handle labels separately based on overwrite_labels flag
+            labels_to_update = issue.labels if hasattr(issue, "labels") and issue.labels else None
+
+            if labels_to_update and not overwrite_labels:
+                # Add labels without replacing existing ones
+                github_client.add_labels_to_issue(owner, repo_name, issue_number, labels_to_update)
+                typer.echo(f"✅ Added labels to issue #{issue_number}: {', '.join(labels_to_update)}")
+
+                # Remove labels from issue object to avoid duplicate update
+                issue_without_labels = issue.model_copy()
+                issue_without_labels.labels = None
+                response = github_client.update_issue(owner, repo_name, issue_without_labels)
+            else:
+                # Update issue normally (labels will be replaced if present)
+                response = github_client.update_issue(owner, repo_name, issue)
+                if labels_to_update:
+                    typer.echo(f"⚠️  Replaced all labels on issue #{issue_number}")
+
             updated_issues.append(response)
             typer.echo(f"✅ Updated issue #{response['number']}: {response['title']}")
 
