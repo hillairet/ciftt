@@ -62,11 +62,14 @@ python ciftt.py check-token
 # Create new issues from CSV
 python ciftt.py create-issues input.csv myorg/myrepo
 
-# Update existing issues (basic fields only)
+# Update existing issues (adds labels to existing ones by default)
 python ciftt.py update-issues input.csv
 
 # Update existing issues and their project fields from CSV
 python ciftt.py update-issues input.csv --project myorg/123
+
+# Replace all labels instead of adding to them (⚠️ removes labels not in CSV)
+python ciftt.py update-issues input.csv --overwrite-labels
 
 # Export issues to CSV
 python ciftt.py export-issues myorg/myrepo output.csv
@@ -126,11 +129,11 @@ Title,Description,Labels,Assignee,URL,Priority,Status,Sprint
 - Project fields are **only updated** when the `--project` option is provided
 - A warning is shown if project field columns exist in the CSV but no `--project` is specified
 
-**Important: Labels are completely replaced, not merged**
-- When you specify labels in your CSV, they **completely replace** the existing labels on the issue
-- To preserve existing labels, include them in your CSV along with any new labels
-- Example: If an issue has label `bug` and your CSV contains `"enhancement,ui"`, the result will be only `enhancement` and `ui` (the `bug` label will be removed)
-- To keep all labels: Export issues first, edit the CSV to include both existing and new labels (e.g., `"bug,enhancement,ui"`), then update
+**Label Handling: Safe by Default**
+- By default, labels in your CSV are **added to existing labels** (not replaced)
+- Example: If an issue has label `bug` and your CSV contains `"enhancement,ui"`, the result will be `bug,enhancement,ui`
+- To **replace all labels** instead, use the `--overwrite-labels` flag (⚠️ this will remove any labels not in your CSV)
+- Empty label cells in CSV will be ignored (won't affect existing labels)
 
 **Format Notes:**
 - CSV files use commas as separators: `Title,Description,URL`
