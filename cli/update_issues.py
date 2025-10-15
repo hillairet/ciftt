@@ -75,6 +75,14 @@ def update_issues(
     """
     csv_data = load_csv_for_command(csv_file)
 
+    # Check for Labels column and inform user of label handling behavior
+    has_labels_column = "Labels" in csv_data.data.columns
+    if has_labels_column:
+        if overwrite_labels:
+            typer.echo("🏷️  Label mode: ⚠️  OVERWRITE - Will replace all existing labels")
+        else:
+            typer.echo("🏷️  Label mode: ➕ ADD - Will add labels to existing ones (use --overwrite-labels to replace)")
+
     # Show project field detection info and handle project requirement
     if csv_data.has_project_fields():
         typer.echo(

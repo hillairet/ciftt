@@ -370,3 +370,62 @@ class TestUpdateIssuesIntegration:
 
             mock_github_client.add_labels_to_issue.assert_not_called()
             assert mock_github_client.update_issue.call_count == 1
+
+    def test_update_issues_shows_add_label_mode_message(self, tmp_path, mock_github_client, capsys):
+        """Test that informative message is shown for ADD label mode."""
+        csv_file = tmp_path / "with_labels.csv"
+        csv_file.write_text(
+            "Title,Labels,URL\n"
+            "Test Issue,bug,https://github.com/owner/repo/issues/123\n"
+        )
+
+        with patch(
+            "cli.common.init_github_client", return_value=mock_github_client
+        ), patch("cli.common.validate_token_scopes"), patch(
+            "cli.common.validate_repository_access"
+        ):
+
+            update_issues(str(csv_file), project=None, dry_run=False, overwrite_labels=False)
+
+            captured = capsys.readouterr()
+            assert "🏷️  Label mode: ➕ ADD" in captured.out
+            assert "Will add labels to existing ones" in captured.out
+
+    def test_update_issues_shows_overwrite_label_mode_message(self, tmp_path, mock_github_client, capsys):
+        """Test that warning message is shown for OVERWRITE label mode."""
+        csv_file = tmp_path / "with_labels.csv"
+        csv_file.write_text(
+            "Title,Labels,URL\n"
+            "Test Issue,bug,https://github.com/owner/repo/issues/123\n"
+        )
+
+        with patch(
+            "cli.common.init_github_client", return_value=mock_github_client
+        ), patch("cli.common.validate_token_scopes"), patch(
+            "cli.common.validate_repository_access"
+        ):
+
+            update_issues(str(csv_file), project=None, dry_run=False, overwrite_labels=True)
+
+            captured = capsys.readouterr()
+            assert "🏷️  Label mode: ⚠️  OVERWRITE" in captured.out
+            assert "Will replace all existing labels" in captured.out
+
+    def test_update_issues_no_label_message_without_labels_column(self, tmp_path, mock_github_client, capsys):
+        """Test that no label mode message is shown when Labels column is absent."""
+        csv_file = tmp_path / "no_labels.csv"
+        csv_file.write_text(
+            "Title,URL\n"
+            "Test Issue,https://github.com/owner/repo/issues/123\n"
+        )
+
+        with patch(
+            "cli.common.init_github_client", return_value=mock_github_client
+        ), patch("cli.common.validate_token_scopes"), patch(
+            "cli.common.validate_repository_access"
+        ):
+
+            update_issues(str(csv_file), project=None, dry_run=False, overwrite_labels=False)
+
+            captured = capsys.readouterr()
+            assert "🏷️  Label mode" not in captured.out
