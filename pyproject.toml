@@ -31,9 +31,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
-    "black",
-    "flake8",
-    "isort",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
 ]
 
 [project.scripts]
@@ -43,15 +43,50 @@ ciftt = "ciftt:app"
 "Homepage" = "https://github.com/hillairet/ciftt"
 "Bug Tracker" = "https://github.com/hillairet/ciftt/issues"
 
-[tool.black]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--cov=.",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-fail-under=80",
+]
+
+[tool.ruff]
 line-length = 88
-target-version = ["py38"]
+target-version = "py38"
+extend-exclude = ["ENV"]
 
-[tool.isort]
-profile = "black"
-line_length = 88
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
 
-[tool.flake8]
-max-line-length = 88
-extend-ignore = "E203"
-exclude = [".git", "__pycache__", "build", "dist"]
+[tool.mypy]
+python_version = "3.9"
+strict = false
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_any_generics = false
+check_untyped_defs = true
+no_implicit_reexport = false
+warn_redundant_casts = true
+warn_unused_ignores = true
+explicit_package_bases = true
+mypy_path = "."
+exclude = [
+    "ENV",
+    ".venv",
+    "build",
+]

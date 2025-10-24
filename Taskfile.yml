@@ -1,0 +1,52 @@
+version: '3'
+
+tasks:
+  test:
+    desc: Run tests with coverage
+    cmds:
+      - PYTHONPATH=. uv run pytest
+
+  lint:
+    desc: Run ruff linter
+    cmds:
+      - uv run ruff check .
+
+  format:
+    desc: Format code with ruff
+    cmds:
+      - uv run ruff format .
+
+  format-check:
+    desc: Check code formatting without making changes
+    cmds:
+      - uv run ruff format --check .
+
+  typecheck:
+    desc: Run mypy type checking
+    cmds:
+      - uv run mypy .
+
+  check:
+    desc: Run all quality checks (test, lint, format-check, typecheck)
+    cmds:
+      - task: test
+      - task: lint
+      - task: format-check
+      - task: typecheck
+
+  fix:
+    desc: Auto-fix linting and formatting issues
+    cmds:
+      - uv run ruff check --fix .
+      - uv run ruff format .
+
+  clean:
+    desc: Clean up generated files
+    cmds:
+      - rm -rf .venv
+      - rm -rf htmlcov
+      - rm -rf .coverage
+      - rm -rf .mypy_cache
+      - rm -rf .pytest_cache
+      - rm -rf .ruff_cache
+      - find . -type d -name "__pycache__" -exec rm -rf {} +
