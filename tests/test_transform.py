@@ -1,7 +1,6 @@
 import tempfile
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 from csv_data import CSVData
@@ -27,7 +26,9 @@ class TestTransformNewIssues:
         """Test that empty titles are rejected at CSV loading level."""
         with tempfile.TemporaryDirectory() as temp_dir:
             csv_path = Path(temp_dir) / "test.csv"
-            csv_path.write_text("Title,Description\n,Test body\nValid Title,Another body")
+            csv_path.write_text(
+                "Title,Description\n,Test body\nValid Title,Another body"
+            )
 
             # csv_data.py should reject this during loading
             with pytest.raises(ValueError, match="Empty title values found"):
@@ -137,7 +138,10 @@ class TestTransformUpdatedIssues:
 
             assert len(issues) == 1
             assert issues[0].issue_number == 789
-            assert issues[0].project_fields == {"Sprint": "Sprint 1", "Priority": "High"}
+            assert issues[0].project_fields == {
+                "Sprint": "Sprint 1",
+                "Priority": "High",
+            }
 
     def test_transform_with_body_escape_sequences(self):
         """Test that escape sequences in body are decoded for updated issues."""

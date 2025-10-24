@@ -1,7 +1,7 @@
 import logging
 import sys
 from time import sleep, time
-from typing import Any, Callable, Dict
+from typing import Callable, Dict
 
 
 class RateLimitMixin:

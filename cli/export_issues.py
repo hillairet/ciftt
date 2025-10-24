@@ -1,10 +1,7 @@
-import pandas as pd
 import typer
 
-from github import GitHubClient
 from settings import Settings
 from transform import transform_issues_to_dataframe
-from utils import parse_issue_numbers
 
 from .csv_data import save_df_to_csv
 from .github import (

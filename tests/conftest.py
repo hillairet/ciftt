@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from github.data import ProjectFieldUpdateResult, ProjectInfo
+from github.data import ProjectFieldUpdateResult
 
 
 @pytest.fixture

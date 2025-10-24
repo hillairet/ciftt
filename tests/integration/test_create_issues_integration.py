@@ -1,5 +1,4 @@
-from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 from click.exceptions import Exit
@@ -19,7 +18,6 @@ class TestCreateIssuesIntegration:
         ), patch("cli.common.validate_token_scopes"), patch(
             "cli.common.validate_repository_access"
         ):
-
             # This should not raise any exceptions
             create_issues(csv_file, "owner/repo", dry_run=False)
 
@@ -68,7 +66,6 @@ class TestCreateIssuesIntegration:
         ), patch("cli.common.validate_token_scopes"), patch(
             "cli.common.validate_repository_access"
         ):
-
             # Should handle the error gracefully and continue with other issues
             create_issues(csv_file, "owner/repo", dry_run=False)
 

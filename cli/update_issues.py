@@ -5,7 +5,12 @@ import typer
 from transform import transform_csv_to_updated_issues
 from utils import extract_repo_from_issue_url, parse_github_project_identifier
 
-from .common import handle_cli_error, load_csv_for_command, setup_github_client_for_command, validate_project_fields_for_csv
+from .common import (
+    handle_cli_error,
+    load_csv_for_command,
+    setup_github_client_for_command,
+    validate_project_fields_for_csv,
+)
 from .dry_run import perform_dry_run
 from .issues import update_issues_in_github
 
@@ -61,7 +66,10 @@ def update_issues(
         ..., help="Path to the CSV file containing issue data"
     ),
     project: str = typer.Option(
-        None, "--project", "-p", help="GitHub project (formats: owner/123, owner/projects/123, or full URL). Required only if updating project fields."
+        None,
+        "--project",
+        "-p",
+        help="GitHub project (formats: owner/123, owner/projects/123, or full URL). Required only if updating project fields.",
     ),
     dry_run: bool = typer.Option(
         False, "--dry-run", "-d", help="Print actions without executing them"
@@ -112,8 +120,7 @@ def update_issues(
         required_scopes.append("project")
 
     github_client = setup_github_client_for_command(
-        required_scopes=required_scopes,
-        repositories=repositories
+        required_scopes=required_scopes, repositories=repositories
     )
 
     # Validate project and fields only if project is provided
@@ -130,7 +137,9 @@ def update_issues(
             handle_cli_error("Project validation", e)
 
         # Validate project fields before processing issues
-        validate_project_fields_for_csv(csv_data, github_client, project_owner, project_number)
+        validate_project_fields_for_csv(
+            csv_data, github_client, project_owner, project_number
+        )
 
     # Repository access already validated by setup_github_client_for_command
 

@@ -1,4 +1,3 @@
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
@@ -18,11 +17,11 @@ class TestUpdateIssuesIntegration:
         # Mock project validation
         mock_github_client.validate_project_exists.return_value = ProjectInfo(
             id="test-id",
-            title="Test Project", 
+            title="Test Project",
             number=123,
             url="https://github.com/users/owner/projects/123",
             owner="owner",
-            type="user"
+            type="user",
         )
 
         with patch(
@@ -30,7 +29,6 @@ class TestUpdateIssuesIntegration:
         ), patch("cli.common.validate_token_scopes"), patch(
             "cli.common.validate_repository_access"
         ):
-
             # This should not raise any exceptions
             update_issues(csv_file, "owner/123", dry_run=False)
 
@@ -74,11 +72,11 @@ class TestUpdateIssuesIntegration:
         # Mock project validation
         mock_github_client.validate_project_exists.return_value = ProjectInfo(
             id="test-id",
-            title="Test Project", 
+            title="Test Project",
             number=123,
             url="https://github.com/users/owner/projects/123",
             owner="owner",
-            type="user"
+            type="user",
         )
 
         # Mock GitHub client to raise an exception
@@ -89,7 +87,6 @@ class TestUpdateIssuesIntegration:
         ), patch("cli.common.validate_token_scopes"), patch(
             "cli.common.validate_repository_access"
         ):
-
             # Should handle the error gracefully and continue with other issues
             update_issues(csv_file, "owner/123", dry_run=False)
 
@@ -104,12 +101,9 @@ class TestUpdateIssuesIntegration:
             "title,description,url\nTest title,Test description,not-a-github-url"
         )
 
-        with patch(
-            "cli.common.init_github_client"
-        ), patch("cli.common.validate_token_scopes"), patch(
-            "cli.common.validate_repository_access"
-        ):
-
+        with patch("cli.common.init_github_client"), patch(
+            "cli.common.validate_token_scopes"
+        ), patch("cli.common.validate_repository_access"):
             # Should handle invalid URLs gracefully
             with pytest.raises(Exit):  # Should exit when no valid URLs found
                 update_issues(str(invalid_csv), "owner/123", dry_run=False)
@@ -126,11 +120,11 @@ class TestUpdateIssuesIntegration:
         # Mock project validation
         mock_github_client.validate_project_exists.return_value = ProjectInfo(
             id="test-id",
-            title="Test Project", 
+            title="Test Project",
             number=123,
             url="https://github.com/users/owner/projects/123",
             owner="owner",
-            type="user"
+            type="user",
         )
 
         # Mock project field definitions
@@ -140,9 +134,10 @@ class TestUpdateIssuesIntegration:
         }
 
         # Mock project field update method
-        mock_github_client.update_issue_project_fields.return_value = ProjectFieldUpdateResult(
-            updated_fields={"Priority": "High", "Status": "In Progress"},
-            errors={}
+        mock_github_client.update_issue_project_fields.return_value = (
+            ProjectFieldUpdateResult(
+                updated_fields={"Priority": "High", "Status": "In Progress"}, errors={}
+            )
         )
 
         with patch(
@@ -150,7 +145,6 @@ class TestUpdateIssuesIntegration:
         ), patch("cli.common.validate_token_scopes"), patch(
             "cli.common.validate_repository_access"
         ):
-
             # Should update both issue and project fields
             update_issues(
                 str(csv_with_fields),
@@ -175,7 +169,9 @@ class TestUpdateIssuesIntegration:
             assert project_fields["Priority"] == "High"
             assert project_fields["Status"] == "In Progress"
 
-    def test_update_issues_without_project_no_fields(self, tmp_path, mock_github_client):
+    def test_update_issues_without_project_no_fields(
+        self, tmp_path, mock_github_client
+    ):
         """Test updating issues without project option when CSV has no project fields."""
         csv_no_fields = tmp_path / "no_project_fields.csv"
         csv_no_fields.write_text(
@@ -188,7 +184,6 @@ class TestUpdateIssuesIntegration:
         ), patch("cli.common.validate_token_scopes"), patch(
             "cli.common.validate_repository_access"
         ):
-
             update_issues(str(csv_no_fields), project=None, dry_run=False)
 
             assert mock_github_client.update_issue.call_count == 1
@@ -210,11 +205,13 @@ class TestUpdateIssuesIntegration:
         ), patch("cli.common.validate_token_scopes"), patch(
             "cli.common.validate_repository_access"
         ):
-
             update_issues(str(csv_with_fields), project=None, dry_run=False)
 
             captured = capsys.readouterr()
-            assert "⚠️  Warning: Project fields detected but no project provided" in captured.out
+            assert (
+                "⚠️  Warning: Project fields detected but no project provided"
+                in captured.out
+            )
             assert "Priority, Status" in captured.out
             assert "💡 Tip: Use --project option" in captured.out
 
@@ -238,10 +235,9 @@ class TestUpdateIssuesIntegration:
 
         with patch(
             "cli.common.init_github_client", return_value=mock_client
-        ) as mock_init, patch("cli.common.validate_token_scopes") as mock_validate, patch(
-            "cli.common.validate_repository_access"
-        ):
-
+        ) as mock_init, patch(
+            "cli.common.validate_token_scopes"
+        ) as mock_validate, patch("cli.common.validate_repository_access"):
             update_issues(str(csv_file), project=None, dry_run=False)
 
             mock_validate.assert_called_once_with(mock_client, ["repo"])
@@ -272,10 +268,11 @@ class TestUpdateIssuesIntegration:
         ), patch("cli.common.validate_token_scopes") as mock_validate, patch(
             "cli.common.validate_repository_access"
         ):
-
             update_issues(str(csv_file), project="owner/123", dry_run=False)
 
-            mock_validate.assert_called_once_with(mock_github_client, ["repo", "project"])
+            mock_validate.assert_called_once_with(
+                mock_github_client, ["repo", "project"]
+            )
 
     def test_update_issues_dry_run_without_project(self, tmp_path, capsys):
         """Test dry run mode without project option."""
@@ -292,7 +289,9 @@ class TestUpdateIssuesIntegration:
         assert "Would update issue #456" in captured.out
         assert "📋 No project fields detected - updating issues only" in captured.out
 
-    def test_update_issues_dry_run_with_project_fields_no_project(self, tmp_path, capsys):
+    def test_update_issues_dry_run_with_project_fields_no_project(
+        self, tmp_path, capsys
+    ):
         """Test dry run shows warning when project fields present but no project."""
         csv_file = tmp_path / "with_fields.csv"
         csv_file.write_text(
@@ -305,5 +304,8 @@ class TestUpdateIssuesIntegration:
         captured = capsys.readouterr()
         assert "DRY RUN MODE" in captured.out
         assert "📊 Detected project fields: Status" in captured.out
-        assert "⚠️  Warning: Project fields detected but no project provided" in captured.out
+        assert (
+            "⚠️  Warning: Project fields detected but no project provided"
+            in captured.out
+        )
         assert "Status" in captured.out

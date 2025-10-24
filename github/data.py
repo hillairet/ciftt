@@ -1,6 +1,13 @@
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 from utils import extract_issue_number, safe_decode
 
@@ -11,7 +18,8 @@ class BaseIssue(BaseModel):
     """
 
     body: Optional[str] = Field(
-        default=None, validation_alias=AliasChoices("body", "description", "Description")
+        default=None,
+        validation_alias=AliasChoices("body", "description", "Description"),
     )
     labels: Optional[List[str]] = Field(default=None, alias="Labels")
     assignees: Optional[List[str]] = Field(default=None, alias="Assignees")
@@ -101,7 +109,9 @@ class UpdatedIssue(BaseIssue):
 
         url = values.get("url") or values.get("URL")
         if not url:
-            raise ValueError("Either issue_number or URL with issue number is required for updating issues")
+            raise ValueError(
+                "Either issue_number or URL with issue number is required for updating issues"
+            )
 
         issue_num = extract_issue_number(url)
         if not issue_num:

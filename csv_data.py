@@ -34,7 +34,7 @@ class CSVData:
 
         # If extension doesn't clearly indicate, try to sniff the delimiter
         try:
-            with open(self.filepath, "r", newline="") as file:
+            with open(self.filepath, newline="") as file:
                 sample = file.read(4096)  # Read a sample of the file
                 sniffer = csv.Sniffer()
                 dialect = sniffer.sniff(sample)
@@ -72,16 +72,16 @@ class CSVData:
         """
         new_issues_mask = self._identify_new_issues()
         has_new_issues = new_issues_mask.any()
-        
+
         self._validate_title_column_exists(has_new_issues)
-        
+
         if has_new_issues and "Title" in self.data.columns:
             self._validate_title_values(new_issues_mask)
 
     def _identify_new_issues(self) -> pd.Series:
         """
         Identify which rows represent new issues (rows without URLs).
-        
+
         Returns:
             Boolean Series indicating which rows are new issues
         """
@@ -94,10 +94,10 @@ class CSVData:
     def _validate_title_column_exists(self, has_new_issues: bool) -> None:
         """
         Validate that Title column exists when there are new issues.
-        
+
         Args:
             has_new_issues: Whether there are any new issues in the data
-            
+
         Raises:
             ValueError: If Title column is missing but required
         """
@@ -109,10 +109,10 @@ class CSVData:
     def _validate_title_values(self, new_issues_mask: pd.Series) -> None:
         """
         Validate that all new issues have non-empty title values.
-        
+
         Args:
             new_issues_mask: Boolean Series indicating which rows are new issues
-            
+
         Raises:
             ValueError: If any new issues have empty titles
         """

@@ -3,6 +3,7 @@
 CIFTT - CSV Input for Feature Triage and Tracking
 A tool to create or update GitHub issues from CSV input.
 """
+
 import typer
 
 from cli import check_token, create_issues, export_issues, update_issues

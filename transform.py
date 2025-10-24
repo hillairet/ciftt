@@ -2,11 +2,11 @@
 Transform CSV data into GitHub issue instances.
 """
 
-from typing import List, Union
+from typing import List
 
 import pandas as pd
 
-from github import BaseIssue, NewIssue, UpdatedIssue
+from github import NewIssue, UpdatedIssue
 
 
 def transform_csv_to_new_issues(data: pd.DataFrame) -> List[NewIssue]:
