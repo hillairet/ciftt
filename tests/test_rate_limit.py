@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 
-from github.rate_limit import RateLimitMixin
+from ciftt.github.rate_limit import RateLimitMixin
 
 
 class TestRateLimitClass(RateLimitMixin):
@@ -25,7 +25,7 @@ class TestHandleRateLimit:
 
         request_func = Mock(return_value={"result": "success"})
 
-        with patch("github.rate_limit.sleep") as mock_sleep:
+        with patch("ciftt.github.rate_limit.sleep") as mock_sleep:
             result = rate_limiter.handle_rate_limit(
                 response, "GET", "/test", request_func
             )
@@ -43,7 +43,7 @@ class TestHandleRateLimit:
 
         request_func = Mock(return_value={"result": "success"})
 
-        with patch("github.rate_limit.sleep") as mock_sleep:
+        with patch("ciftt.github.rate_limit.sleep") as mock_sleep:
             result = rate_limiter.handle_rate_limit(
                 response, "GET", "/test", request_func
             )
@@ -68,8 +68,8 @@ class TestHandlePrimaryRateLimit:
 
         request_func = Mock(return_value={"data": "test"})
 
-        with patch("github.rate_limit.sleep") as mock_sleep, patch(
-            "github.rate_limit.time", return_value=current_time
+        with patch("ciftt.github.rate_limit.sleep") as mock_sleep, patch(
+            "ciftt.github.rate_limit.time", return_value=current_time
         ):
             result = rate_limiter._handle_primary_rate_limit(
                 response, "GET", "/repos/test", request_func
@@ -93,7 +93,7 @@ class TestHandlePrimaryRateLimit:
 
         request_func = Mock()
 
-        with patch("github.rate_limit.sleep") as mock_sleep:
+        with patch("ciftt.github.rate_limit.sleep") as mock_sleep:
             with pytest.raises(Exception, match="No rate limit"):
                 rate_limiter._handle_primary_rate_limit(
                     response, "GET", "/repos/test", request_func
@@ -134,8 +134,8 @@ class TestHandlePrimaryRateLimit:
 
         request_func = Mock(return_value={"result": "ok"})
 
-        with patch("github.rate_limit.sleep"), patch(
-            "github.rate_limit.time", return_value=current_time
+        with patch("ciftt.github.rate_limit.sleep"), patch(
+            "ciftt.github.rate_limit.time", return_value=current_time
         ):
             result = rate_limiter._handle_primary_rate_limit(
                 response,
@@ -160,7 +160,7 @@ class TestHandleSecondaryRateLimit:
         response = Mock()
         request_func = Mock(return_value={"data": "ok"})
 
-        with patch("github.rate_limit.sleep") as mock_sleep:
+        with patch("ciftt.github.rate_limit.sleep") as mock_sleep:
             result = rate_limiter._handle_secondary_rate_limit(
                 response, "GET", "/test", request_func
             )
@@ -176,7 +176,7 @@ class TestHandleSecondaryRateLimit:
         response = Mock()
         request_func = Mock(return_value={"data": "ok"})
 
-        with patch("github.rate_limit.sleep") as mock_sleep:
+        with patch("ciftt.github.rate_limit.sleep") as mock_sleep:
             result = rate_limiter._handle_secondary_rate_limit(
                 response, "GET", "/test", request_func
             )
@@ -193,7 +193,7 @@ class TestHandleSecondaryRateLimit:
         response = Mock()
         request_func = Mock(return_value={"data": "ok"})
 
-        with patch("github.rate_limit.sleep") as mock_sleep:
+        with patch("ciftt.github.rate_limit.sleep") as mock_sleep:
             result = rate_limiter._handle_secondary_rate_limit(
                 response, "GET", "/test", request_func
             )
@@ -210,7 +210,7 @@ class TestHandleSecondaryRateLimit:
         response = Mock()
         request_func = Mock()
 
-        with patch("github.rate_limit.sleep"), patch("sys.exit") as mock_exit:
+        with patch("ciftt.github.rate_limit.sleep"), patch("sys.exit") as mock_exit:
             rate_limiter._handle_secondary_rate_limit(
                 response, "GET", "/test", request_func
             )
@@ -225,7 +225,7 @@ class TestHandleSecondaryRateLimit:
         response = Mock()
         request_func = Mock(return_value={"result": "success"})
 
-        with patch("github.rate_limit.sleep"):
+        with patch("ciftt.github.rate_limit.sleep"):
             result = rate_limiter._handle_secondary_rate_limit(
                 response,
                 "POST",
@@ -254,7 +254,7 @@ class TestUpdateRateLimits:
         }
 
         with caplog.at_level(logging.WARNING), patch(
-            "github.rate_limit.time", return_value=current_time
+            "ciftt.github.rate_limit.time", return_value=current_time
         ):
             rate_limiter.update_rate_limits(headers)
 
@@ -311,7 +311,7 @@ class TestUpdateRateLimits:
         }
 
         with caplog.at_level(logging.WARNING), patch(
-            "github.rate_limit.time", return_value=current_time
+            "ciftt.github.rate_limit.time", return_value=current_time
         ):
             rate_limiter.update_rate_limits(headers)
 

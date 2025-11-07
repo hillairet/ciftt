@@ -3,8 +3,8 @@ from unittest.mock import Mock, patch
 import pytest
 from click.exceptions import Exit
 
-from cli.update_issues import update_issues
-from github.data import ProjectFieldUpdateResult, ProjectInfo
+from ciftt.cli.update_issues import update_issues
+from ciftt.github.data import ProjectFieldUpdateResult, ProjectInfo
 
 
 class TestUpdateIssuesIntegration:
@@ -25,9 +25,9 @@ class TestUpdateIssuesIntegration:
         )
 
         with patch(
-            "cli.common.init_github_client", return_value=mock_github_client
-        ), patch("cli.common.validate_token_scopes"), patch(
-            "cli.common.validate_repository_access"
+            "ciftt.cli.common.init_github_client", return_value=mock_github_client
+        ), patch("ciftt.cli.common.validate_token_scopes"), patch(
+            "ciftt.cli.common.validate_repository_access"
         ):
             # This should not raise any exceptions
             update_issues(csv_file, "owner/123", dry_run=False)
@@ -83,9 +83,9 @@ class TestUpdateIssuesIntegration:
         mock_github_client.update_issue.side_effect = Exception("API Error")
 
         with patch(
-            "cli.common.init_github_client", return_value=mock_github_client
-        ), patch("cli.common.validate_token_scopes"), patch(
-            "cli.common.validate_repository_access"
+            "ciftt.cli.common.init_github_client", return_value=mock_github_client
+        ), patch("ciftt.cli.common.validate_token_scopes"), patch(
+            "ciftt.cli.common.validate_repository_access"
         ):
             # Should handle the error gracefully and continue with other issues
             update_issues(csv_file, "owner/123", dry_run=False)
@@ -101,9 +101,9 @@ class TestUpdateIssuesIntegration:
             "title,description,url\nTest title,Test description,not-a-github-url"
         )
 
-        with patch("cli.common.init_github_client"), patch(
-            "cli.common.validate_token_scopes"
-        ), patch("cli.common.validate_repository_access"):
+        with patch("ciftt.cli.common.init_github_client"), patch(
+            "ciftt.cli.common.validate_token_scopes"
+        ), patch("ciftt.cli.common.validate_repository_access"):
             # Should handle invalid URLs gracefully
             with pytest.raises(Exit):  # Should exit when no valid URLs found
                 update_issues(str(invalid_csv), "owner/123", dry_run=False)
@@ -141,9 +141,9 @@ class TestUpdateIssuesIntegration:
         )
 
         with patch(
-            "cli.common.init_github_client", return_value=mock_github_client
-        ), patch("cli.common.validate_token_scopes"), patch(
-            "cli.common.validate_repository_access"
+            "ciftt.cli.common.init_github_client", return_value=mock_github_client
+        ), patch("ciftt.cli.common.validate_token_scopes"), patch(
+            "ciftt.cli.common.validate_repository_access"
         ):
             # Should update both issue and project fields
             update_issues(
@@ -180,9 +180,9 @@ class TestUpdateIssuesIntegration:
         )
 
         with patch(
-            "cli.common.init_github_client", return_value=mock_github_client
-        ), patch("cli.common.validate_token_scopes"), patch(
-            "cli.common.validate_repository_access"
+            "ciftt.cli.common.init_github_client", return_value=mock_github_client
+        ), patch("ciftt.cli.common.validate_token_scopes"), patch(
+            "ciftt.cli.common.validate_repository_access"
         ):
             update_issues(str(csv_no_fields), project=None, dry_run=False)
 
@@ -201,9 +201,9 @@ class TestUpdateIssuesIntegration:
         )
 
         with patch(
-            "cli.common.init_github_client", return_value=mock_github_client
-        ), patch("cli.common.validate_token_scopes"), patch(
-            "cli.common.validate_repository_access"
+            "ciftt.cli.common.init_github_client", return_value=mock_github_client
+        ), patch("ciftt.cli.common.validate_token_scopes"), patch(
+            "ciftt.cli.common.validate_repository_access"
         ):
             update_issues(str(csv_with_fields), project=None, dry_run=False)
 
@@ -234,10 +234,10 @@ class TestUpdateIssuesIntegration:
         }
 
         with patch(
-            "cli.common.init_github_client", return_value=mock_client
+            "ciftt.cli.common.init_github_client", return_value=mock_client
         ) as mock_init, patch(
-            "cli.common.validate_token_scopes"
-        ) as mock_validate, patch("cli.common.validate_repository_access"):
+            "ciftt.cli.common.validate_token_scopes"
+        ) as mock_validate, patch("ciftt.cli.common.validate_repository_access"):
             update_issues(str(csv_file), project=None, dry_run=False)
 
             mock_validate.assert_called_once_with(mock_client, ["repo"])
@@ -264,9 +264,9 @@ class TestUpdateIssuesIntegration:
         mock_github_client.get_project_field_definitions.return_value = {}
 
         with patch(
-            "cli.common.init_github_client", return_value=mock_github_client
-        ), patch("cli.common.validate_token_scopes") as mock_validate, patch(
-            "cli.common.validate_repository_access"
+            "ciftt.cli.common.init_github_client", return_value=mock_github_client
+        ), patch("ciftt.cli.common.validate_token_scopes") as mock_validate, patch(
+            "ciftt.cli.common.validate_repository_access"
         ):
             update_issues(str(csv_file), project="owner/123", dry_run=False)
 

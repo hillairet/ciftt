@@ -1,6 +1,6 @@
 import pytest
 
-from github.data import NewIssue, UpdatedIssue
+from ciftt.github.data import NewIssue, UpdatedIssue
 
 
 class TestBodyFieldDecoding:

@@ -1,11 +1,11 @@
 import pytest
 
-from github.client_utils import (
+from ciftt.github.client_utils import (
     _extract_project_fields,
     _extract_project_info_for_updates,
     _format_project_field_value,
 )
-from github.data import (
+from ciftt.github.data import (
     DateFieldValue,
     IterationFieldValue,
     NumberFieldValue,

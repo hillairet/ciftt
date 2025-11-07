@@ -4,7 +4,7 @@ tasks:
   test:
     desc: Run tests with coverage
     cmds:
-      - PYTHONPATH=. uv run pytest
+      - uv run pytest
 
   lint:
     desc: Run ruff linter

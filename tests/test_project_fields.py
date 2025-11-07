@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from csv_data import CSVData
+from ciftt.csv_data import CSVData
 
 
 @pytest.fixture

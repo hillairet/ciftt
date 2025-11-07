@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from csv_data import CSVData
-from transform import transform_csv_to_new_issues, transform_csv_to_updated_issues
+from ciftt.csv_data import CSVData
+from ciftt.transform import transform_csv_to_new_issues, transform_csv_to_updated_issues
 
 
 class TestTransformNewIssues:

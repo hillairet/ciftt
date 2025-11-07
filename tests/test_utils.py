@@ -1,6 +1,6 @@
 import pytest
 
-from utils import (
+from ciftt.utils import (
     extract_issue_number,
     extract_repo_from_issue_url,
     parse_github_project_identifier,
