@@ -131,9 +131,9 @@ Title,Description,Labels,Assignee,URL,Priority,Status,Sprint
   - Accepted values: `open` or `closed`
   - Example: `State,URL` → `closed,https://github.com/owner/repo/issues/123`
 - The optional `StateReason` column specifies why an issue was closed
-  - Valid values: `completed` (default), `not_planned`, or `reopened`
+  - Valid values: `completed` (default), `not_planned`, `duplicate`, or `reopened`
   - Only applies when `State` is `closed`
-  - Example CSV: `State,StateReason,URL` → `closed,not_planned,https://github.com/...`
+  - Example CSV: `State,StateReason,URL` → `closed,duplicate,https://github.com/...`
 
 **Important: Labels are completely replaced, not merged**
 - When you specify labels in your CSV, they **completely replace** the existing labels on the issue
