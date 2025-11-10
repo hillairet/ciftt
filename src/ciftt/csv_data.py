@@ -145,6 +145,7 @@ class CSVData:
             "Assignees",
             "Milestone",
             "State",
+            "StateReason",
             "URL",
             "Number",
             "Created_at",
