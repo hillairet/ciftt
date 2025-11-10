@@ -308,7 +308,6 @@ CIFTT is a CLI tool, not a deployed service:
 ## Additional Resources
 
 - **README.md**: User-facing documentation and feature overview
-- **CLAUDE.md**: Project-specific guidance for Claude Code AI assistant
 - **CONVENTIONS.md**: Development conventions (legacy, mostly superseded by this file)
 - **Taskfile.yml**: All available task commands and their implementations
 - **pyproject.toml**: Complete project configuration, dependencies, and tool settings
