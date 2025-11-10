@@ -275,7 +275,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
         Returns:
             ProjectFieldUpdateResult with update results for each field
         """
-        from github.client_utils import _extract_project_info_for_updates
+        from ciftt.github.client_utils import _extract_project_info_for_updates
 
         if not project_fields:
             return ProjectFieldUpdateResult()
@@ -334,7 +334,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
             updated_fields: Dictionary to store successfully updated fields
             errors: Dictionary to store field update errors
         """
-        from github.client_utils import _format_project_field_value
+        from ciftt.github.client_utils import _format_project_field_value
 
         for field_name, field_value in project_fields.items():
             if field_name not in available_fields:
