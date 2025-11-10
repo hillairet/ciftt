@@ -147,8 +147,8 @@ def update_issues_in_github(
             updated_issues.append(response)
             typer.echo(f"✅ Updated issue #{response['number']}: {response['title']}")
 
-            # Update project fields if present
-            if hasattr(issue, "project_fields") and issue.project_fields:
+            # Update project fields only if target project is specified
+            if target_project_number and hasattr(issue, "project_fields") and issue.project_fields:
                 try:
                     project_results = github_client.update_issue_project_fields(
                         owner,

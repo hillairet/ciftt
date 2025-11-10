@@ -217,6 +217,7 @@ class TestUpdateIssuesIntegration:
 
             assert mock_github_client.update_issue.call_count == 1
             mock_github_client.validate_project_exists.assert_not_called()
+            mock_github_client.update_issue_project_fields.assert_not_called()
 
     def test_update_issues_scope_requirements_without_project(self, tmp_path, capsys):
         """Test that only 'repo' scope is required when project is not provided."""
