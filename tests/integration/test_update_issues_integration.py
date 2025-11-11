@@ -310,3 +310,33 @@ class TestUpdateIssuesIntegration:
             in captured.out
         )
         assert "Status" in captured.out
+
+    def test_update_issues_with_state_reason(
+        self, tmp_path, mock_github_client
+    ):
+        """Test that StateReason column is properly sent to GitHub API."""
+        csv_file = tmp_path / "state_reason.csv"
+        csv_file.write_text(
+            "Title,State,StateReason,URL\n"
+            "Issue to close,closed,not_planned,https://github.com/owner/repo/issues/100\n"
+            "Duplicate issue,closed,duplicate,https://github.com/owner/repo/issues/101\n"
+        )
+
+        with patch(
+            "ciftt.cli.common.init_github_client", return_value=mock_github_client
+        ), patch("ciftt.cli.common.validate_token_scopes"), patch(
+            "ciftt.cli.common.validate_repository_access"
+        ):
+            update_issues(str(csv_file), project=None, dry_run=False)
+
+            assert mock_github_client.update_issue.call_count == 2
+
+            first_call_args = mock_github_client.update_issue.call_args_list[0]
+            issue_1 = first_call_args[0][2]
+            assert issue_1.state == "closed"
+            assert issue_1.state_reason == "not_planned"
+
+            second_call_args = mock_github_client.update_issue.call_args_list[1]
+            issue_2 = second_call_args[0][2]
+            assert issue_2.state == "closed"
+            assert issue_2.state_reason == "duplicate"
