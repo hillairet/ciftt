@@ -340,3 +340,35 @@ class TestUpdateIssuesIntegration:
             issue_2 = second_call_args[0][2]
             assert issue_2.state == "closed"
             assert issue_2.state_reason == "duplicate"
+
+    def test_update_issues_without_project_validates_all_fields(
+        self, tmp_path, mock_github_client
+    ):
+        """Test that all issue fields are correctly passed to API when no project provided."""
+        csv_file = tmp_path / "all_fields.csv"
+        csv_file.write_text(
+            "Title,Description,Labels,Assignees,State,StateReason,URL\n"
+            "Updated Title,New description,bug,user1,closed,not_planned,https://github.com/owner/repo/issues/100\n"
+        )
+
+        with patch(
+            "ciftt.cli.common.init_github_client", return_value=mock_github_client
+        ), patch("ciftt.cli.common.validate_token_scopes"), patch(
+            "ciftt.cli.common.validate_repository_access"
+        ):
+            update_issues(str(csv_file), project=None, dry_run=False)
+
+            assert mock_github_client.update_issue.call_count == 1
+
+            call_args = mock_github_client.update_issue.call_args_list[0]
+            owner, repo, issue = call_args[0]
+
+            assert owner == "owner"
+            assert repo == "repo"
+            assert issue.title == "Updated Title"
+            assert issue.body == "New description"
+            assert issue.labels == ["bug"]
+            assert issue.assignees == ["user1"]
+            assert issue.state == "closed"
+            assert issue.state_reason == "not_planned"
+            assert issue.issue_number == 100

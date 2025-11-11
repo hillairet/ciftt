@@ -141,7 +141,6 @@ class CSVData:
             "Description",
             "Body",
             "Labels",
-            "Assignee",
             "Assignees",
             "Milestone",
             "State",

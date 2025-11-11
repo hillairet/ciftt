@@ -29,7 +29,7 @@ def csv_without_project_fields():
         csv_path = Path(temp_dir) / "standard_fields.csv"
 
         # Create CSV with only standard GitHub issue fields
-        csv_content = """Title,Description,Labels,Assignee,URL
+        csv_content = """Title,Description,Labels,Assignees,URL
 Fix login bug,Authentication is broken,bug;high-priority,john-doe,https://github.com/owner/repo/issues/123
 Add dark mode,Implement dark theme support,enhancement;ui,jane-smith,https://github.com/owner/repo/issues/124"""
 
@@ -58,7 +58,7 @@ def test_no_project_fields(csv_without_project_fields):
     csv_data = CSVData(csv_without_project_fields)
 
     # Check that all columns are classified as standard issue fields
-    expected_standard = ["Title", "Description", "Labels", "Assignee", "URL"]
+    expected_standard = ["Title", "Description", "Labels", "Assignees", "URL"]
     assert all(field in csv_data.issue_field_columns for field in expected_standard)
 
     # Check no project fields detected
