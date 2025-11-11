@@ -92,7 +92,9 @@ class UpdatedIssue(BaseIssue):
 
     title: Optional[str] = Field(default=None, alias="Title")
     state: Optional[Literal["open", "closed"]] = Field(default=None, alias="State")
-    state_reason: Optional[Literal["completed", "not_planned", "duplicate", "reopened"]] = None
+    state_reason: Optional[
+        Literal["completed", "not_planned", "duplicate", "reopened"]
+    ] = None
     issue_number: Optional[int] = None
     project_fields: Optional[Dict[str, str]] = None
     url: Optional[str] = Field(default=None, alias="URL")

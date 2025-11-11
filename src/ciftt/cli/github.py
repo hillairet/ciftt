@@ -23,7 +23,7 @@ def validate_repo(repo: str) -> tuple[str, str]:
         return owner, repo_name
     except ValueError as e:
         typer.echo(f"❌ Error: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 def init_github_client() -> GitHubClient:
@@ -43,7 +43,7 @@ def init_github_client() -> GitHubClient:
         return github_client
     except Exception as e:
         typer.echo(f"❌ Failed to initialize GitHub client: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 def validate_repository_access(
@@ -84,7 +84,7 @@ def validate_repository_access(
             typer.echo("   - SSO is enabled for the organization (if applicable)")
         else:
             typer.echo(f"❌ Failed to validate repository access: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 def validate_token_scopes(
@@ -132,6 +132,6 @@ def validate_token_scopes(
 
     except Exception as e:
         if "typer.Exit" in str(type(e)):
-            raise  # Re-raise typer.Exit exceptions
+            raise
         typer.echo(f"❌ Failed to validate token scopes: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e

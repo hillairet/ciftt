@@ -28,7 +28,7 @@ def parse_provided_issue_numbers(issues: str) -> list:
         return issue_numbers
     except ValueError as e:
         typer.echo(f"❌ Error parsing issue numbers: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 def fetch_issues_from_github(
@@ -66,7 +66,7 @@ def fetch_issues_from_github(
         typer.echo(f"📋 Found {len(issues_data)} issues")
     except Exception as e:
         typer.echo(f"❌ Failed to fetch issues: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
     if not issues_data:
         typer.echo("⚠️ No issues found to export")
@@ -148,7 +148,11 @@ def update_issues_in_github(
             typer.echo(f"✅ Updated issue #{response['number']}: {response['title']}")
 
             # Update project fields only if target project is specified
-            if target_project_number and hasattr(issue, "project_fields") and issue.project_fields:
+            if (
+                target_project_number
+                and hasattr(issue, "project_fields")
+                and issue.project_fields
+            ):
                 try:
                     project_results = github_client.update_issue_project_fields(
                         owner,

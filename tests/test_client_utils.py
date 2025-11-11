@@ -254,7 +254,9 @@ class TestFormatProjectFieldValue:
         assert result.singleSelectOptionId == "opt2"
 
     def test_format_single_select_field_without_options(self):
-        with pytest.raises(ValueError, match="Single select field options are required"):
+        with pytest.raises(
+            ValueError, match="Single select field options are required"
+        ):
             _format_project_field_value("SINGLE_SELECT", "High")
 
     def test_format_single_select_field_invalid_option(self):
@@ -263,9 +265,7 @@ class TestFormatProjectFieldValue:
             {"id": "opt2", "name": "High"},
         ]
 
-        with pytest.raises(
-            ValueError, match="Invalid option 'Medium'. Valid options:"
-        ):
+        with pytest.raises(ValueError, match="Invalid option 'Medium'. Valid options:"):
             _format_project_field_value(
                 "SINGLE_SELECT", "Medium", field_options=field_options
             )

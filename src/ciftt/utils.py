@@ -12,8 +12,8 @@ def parse_repo(repo: str) -> Tuple[str, str]:
     try:
         owner, repo_name = repo.split("/")
         return owner, repo_name
-    except ValueError:
-        raise ValueError("Repository must be in format 'owner/repo'")
+    except ValueError as e:
+        raise ValueError("Repository must be in format 'owner/repo'") from e
 
 
 def extract_issue_number(url: str) -> Optional[int]:
@@ -73,14 +73,14 @@ def parse_issue_numbers(issues_str: str) -> list:
             try:
                 start, end = map(int, part.split("-"))
                 issue_numbers.extend(range(start, end + 1))
-            except ValueError:
-                raise ValueError(f"Invalid issue range: {part}")
+            except ValueError as e:
+                raise ValueError(f"Invalid issue range: {part}") from e
         else:
             # Handle single issue number
             try:
                 issue_numbers.append(int(part))
-            except ValueError:
-                raise ValueError(f"Invalid issue number: {part}")
+            except ValueError as e:
+                raise ValueError(f"Invalid issue number: {part}") from e
 
     return issue_numbers
 

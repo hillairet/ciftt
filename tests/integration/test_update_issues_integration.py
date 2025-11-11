@@ -236,9 +236,9 @@ class TestUpdateIssuesIntegration:
 
         with patch(
             "ciftt.cli.common.init_github_client", return_value=mock_client
-        ) as mock_init, patch(
-            "ciftt.cli.common.validate_token_scopes"
-        ) as mock_validate, patch("ciftt.cli.common.validate_repository_access"):
+        ), patch("ciftt.cli.common.validate_token_scopes") as mock_validate, patch(
+            "ciftt.cli.common.validate_repository_access"
+        ):
             update_issues(str(csv_file), project=None, dry_run=False)
 
             mock_validate.assert_called_once_with(mock_client, ["repo"])

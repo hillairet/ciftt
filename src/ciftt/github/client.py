@@ -384,7 +384,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
         Raises:
             ValueError: If target project is not found
         """
-        for project_title, project_info in projects_info.items():
+        for _project_title, project_info in projects_info.items():
             if str(project_info.get("project_number")) == str(project_number):
                 return project_info
 

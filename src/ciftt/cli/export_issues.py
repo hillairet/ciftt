@@ -1,6 +1,5 @@
 import typer
 
-from ciftt.settings import Settings
 from ciftt.transform import transform_issues_to_dataframe
 
 from .csv_data import save_df_to_csv
@@ -36,8 +35,6 @@ def export_issues(
     """
     Export GitHub issues to a CSV file that can be used for updates.
     """
-    settings = Settings()
-
     typer.echo(f"🔍 Exporting issues from repository: {repo}")
 
     owner, repo_name = validate_repo(repo)

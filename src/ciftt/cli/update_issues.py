@@ -33,7 +33,7 @@ def _validate_project_identifier(project_identifier: str) -> Tuple[str, str]:
         return owner, project_number
     except ValueError as e:
         typer.echo(f"❌ Error: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 def _extract_repositories_from_csv(csv_data) -> Set[Tuple[str, str]]:

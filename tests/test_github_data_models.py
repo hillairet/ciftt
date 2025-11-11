@@ -109,7 +109,7 @@ class TestNewIssueValidation:
 
     def test_new_issue_requires_title(self):
         """Test that NewIssue requires a title."""
-        with pytest.raises(Exception):  # Pydantic validation error
+        with pytest.raises(ValueError):
             NewIssue.model_validate({"Description": "No title provided"})
 
     def test_new_issue_empty_title_rejected(self):

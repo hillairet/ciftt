@@ -39,7 +39,7 @@ class CSVData:
                 sniffer = csv.Sniffer()
                 dialect = sniffer.sniff(sample)
                 return dialect.delimiter
-        except:
+        except Exception:
             # Default to comma if detection fails
             return ","
 
@@ -49,12 +49,12 @@ class CSVData:
             # Use provided delimiter or detect it
             delimiter = self.delimiter or self._detect_delimiter()
             self.data = pd.read_csv(self.filepath, delimiter=delimiter)
-        except pd.errors.EmptyDataError:
+        except pd.errors.EmptyDataError as e:
             # Handle empty CSV files with no columns
             self.data = pd.DataFrame()
-            raise ValueError("Data file is missing required 'title' column")
+            raise ValueError("Data file is missing required 'title' column") from e
         except Exception as e:
-            raise ValueError(f"Failed to load data file: {e}")
+            raise ValueError(f"Failed to load data file: {e}") from e
 
     def _normalize_column_names(self) -> None:
         """

@@ -23,7 +23,7 @@ def load_and_validate_csv(csv_file: str) -> CSVData:
         return csv_data
     except ValueError as e:
         typer.echo(f"❌ Error: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 def save_df_to_csv(df: pd.DataFrame, output_file: str) -> None:
@@ -42,4 +42,4 @@ def save_df_to_csv(df: pd.DataFrame, output_file: str) -> None:
         typer.echo(f"✅ Successfully exported {len(df)} issues to {output_file}")
     except Exception as e:
         typer.echo(f"❌ Failed to write CSV file: {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e

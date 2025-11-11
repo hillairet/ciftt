@@ -1,6 +1,6 @@
 import logging
 from time import time
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import Mock, patch
 
 import pytest
 

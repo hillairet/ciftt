@@ -1,4 +1,3 @@
-
 from ciftt.github.data import (
     DateFieldValue,
     IterationFieldValue,
@@ -70,8 +69,8 @@ def _format_project_field_value(
     elif field_type == "NUMBER":
         try:
             return NumberFieldValue(number=float(value_str))
-        except ValueError:
-            raise ValueError(f"Invalid number value: {value_str}")
+        except ValueError as e:
+            raise ValueError(f"Invalid number value: {value_str}") from e
     elif field_type == "DATE":
         # Expecting ISO date format (YYYY-MM-DD)
         return DateFieldValue(date=value_str)
