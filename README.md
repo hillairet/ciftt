@@ -82,6 +82,9 @@ python ciftt.py export-issues myorg/myrepo output.csv --fields "Priority,Status,
 
 # Export specific issues with project fields
 python ciftt.py export-issues myorg/myrepo output.csv --issues "1-10" --fields "Priority,Assignee,Due Date"
+
+# Add issues to a GitHub Project v2 board
+python ciftt.py add-to-project issues.csv myorg/123
 ```
 
 ## 📄 File Format Support
@@ -189,6 +192,37 @@ python ciftt.py update-issues updated_issues.csv -p owner/123
 **Note:** Project field updates only work with `update-issues` (not `create-issues`) because newly created issues aren't immediately added to projects.
 
 This allows you to export issues with their current project field values, modify them in your spreadsheet, and then re-import to update both the issues and their project fields.
+
+### Adding Issues to Projects
+
+The `add-to-project` command adds existing GitHub issues to a Project v2 board. This is useful when you have a list of issue URLs and want to bulk add them to a project.
+
+**CSV Format:**
+```csv
+URL
+https://github.com/owner/repo/issues/1
+https://github.com/owner/repo/issues/2
+https://github.com/owner/repo/issues/3
+```
+
+**Usage:**
+```bash
+# Add issues from CSV to a project
+python ciftt.py add-to-project issues.csv owner/123
+
+# All project identifier formats are supported
+python ciftt.py add-to-project issues.csv owner/projects/123
+python ciftt.py add-to-project issues.csv https://github.com/orgs/owner/projects/123
+
+# Dry-run to preview what will be added
+python ciftt.py add-to-project issues.csv owner/123 --dry-run
+```
+
+**Features:**
+- Idempotent operation - safe to run multiple times (issues already in the project are skipped automatically by GitHub)
+- Supports issues from multiple repositories in a single CSV
+- Validates all issues exist and are accessible before adding
+- Clear progress reporting for each issue added
 
 ## 🔐 Token Validation
 

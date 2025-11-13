@@ -189,3 +189,24 @@ class IterationFieldValue(ProjectFieldValue):
     """Iteration field value for GitHub Projects v2."""
 
     iterationId: str
+
+
+class IssueNodeInfo(BaseModel):
+    """
+    Represents basic GitHub issue information with node ID.
+    """
+
+    id: str
+    number: int
+    title: str
+    url: str
+
+
+class ProjectItemResult(BaseModel):
+    """
+    Represents the result of adding an issue to a project.
+    """
+
+    item_id: str
+    issue_number: int
+    issue_url: str

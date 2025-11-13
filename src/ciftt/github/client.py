@@ -8,10 +8,12 @@ from pydantic import BaseModel
 
 from ciftt.github.client_utils import _extract_project_fields
 from ciftt.github.data import (
+    IssueNodeInfo,
     NewIssue,
     ProjectFieldUpdateResult,
     ProjectFieldValue,
     ProjectInfo,
+    ProjectItemResult,
     UpdatedIssue,
 )
 from ciftt.github.rate_limit import RateLimitMixin
@@ -27,6 +29,8 @@ PROJECT_FIELDS_QUERY = _load_graphql_query("project_fields.graphql")
 GET_PROJECT_ITEM_INFO_QUERY = _load_graphql_query("get_project_item_info.graphql")
 UPDATE_PROJECT_FIELD_MUTATION = _load_graphql_query("update_project_field.graphql")
 VALIDATE_PROJECT_QUERY = _load_graphql_query("validate_project.graphql")
+GET_ISSUE_NODE_ID_QUERY = _load_graphql_query("get_issue_node_id.graphql")
+ADD_PROJECT_ITEM_MUTATION = _load_graphql_query("add_project_item.graphql")
 
 
 class GitHubClient(BaseModel, RateLimitMixin):
@@ -503,3 +507,77 @@ class GitHubClient(BaseModel, RateLimitMixin):
                 field_definitions[field_name] = field_def
 
         return field_definitions
+
+    def get_issue_node_id(
+        self, owner: str, repo: str, issue_number: int
+    ) -> IssueNodeInfo:
+        """
+        Get the node ID and basic information for an issue.
+
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number
+
+        Returns:
+            IssueNodeInfo model with issue information
+
+        Raises:
+            ValueError: If issue is not found or not accessible
+        """
+        variables = {"owner": owner, "repo": repo, "issueNumber": issue_number}
+
+        response = self.execute_graphql(GET_ISSUE_NODE_ID_QUERY, variables)
+
+        if "errors" in response:
+            error_msg = ", ".join([error["message"] for error in response["errors"]])
+            raise ValueError(f"Failed to get issue info: {error_msg}")
+
+        data = response.get("data", {})
+        if not data or not data.get("repository") or not data["repository"].get("issue"):
+            raise ValueError(
+                f"Issue {owner}/{repo}#{issue_number} not found or not accessible"
+            )
+
+        issue_data = data["repository"]["issue"]
+        return IssueNodeInfo(
+            id=issue_data["id"],
+            number=issue_data["number"],
+            title=issue_data["title"],
+            url=issue_data["url"],
+        )
+
+    def add_issue_to_project(
+        self, project_id: str, issue_id: str, issue_number: int, issue_url: str
+    ) -> ProjectItemResult:
+        """
+        Add an issue to a GitHub Project v2 board.
+
+        Args:
+            project_id: Project node ID (starts with PVT_)
+            issue_id: Issue node ID
+            issue_number: Issue number (for result tracking)
+            issue_url: Issue URL (for result tracking)
+
+        Returns:
+            ProjectItemResult model with the result
+
+        Raises:
+            ValueError: If the operation fails
+        """
+        variables = {"projectId": project_id, "contentId": issue_id}
+
+        response = self.execute_graphql(ADD_PROJECT_ITEM_MUTATION, variables)
+
+        if "errors" in response:
+            error_msg = ", ".join([error["message"] for error in response["errors"]])
+            raise ValueError(f"Failed to add issue to project: {error_msg}")
+
+        data = response.get("data", {})
+        if not data or not data.get("addProjectV2ItemById"):
+            raise ValueError("Failed to add issue to project: No data returned")
+
+        item = data["addProjectV2ItemById"]["item"]
+        return ProjectItemResult(
+            item_id=item["id"], issue_number=issue_number, issue_url=issue_url
+        )
