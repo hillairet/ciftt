@@ -2,6 +2,7 @@ CLAUDE.md
 sample*.csv
 sample*.tsv
 .envrc
+testdata/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
