@@ -15,7 +15,8 @@ def perform_dry_run(csv_data: CSVData) -> None:
     for index, row in csv_data.data.iterrows():
         issue_number = extract_issue_number(row.get("URL"))
         if issue_number:
-            typer.echo(f"Would update issue #{issue_number}: {row['Title']}")
+            title = row.get("Title", "(no title change)")
+            typer.echo(f"Would update issue #{issue_number}: {title}")
 
             # Show project fields that would be updated
             project_fields = csv_data.get_project_field_data(index)
@@ -27,4 +28,5 @@ def perform_dry_run(csv_data: CSVData) -> None:
                     f"  📊 Would update project fields: {', '.join(field_updates)}"
                 )
         else:
-            typer.echo(f"Would create issue: {row['Title']}")
+            title = row.get("Title", "(no title)")
+            typer.echo(f"Would create issue: {title}")
