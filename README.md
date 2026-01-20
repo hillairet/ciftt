@@ -49,43 +49,105 @@ You deserve better. Let the robot do the boring part.
 
 ---
 
+## 🚀 Installation
+
+### Prerequisites
+- Python 3.8 or higher
+- [uv](https://github.com/astral-sh/uv) package manager (recommended) or pip
+
+### Setup
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/hillairet/ciftt.git
+cd ciftt
+```
+
+2. **Install dependencies**
+
+Using `uv` (recommended):
+```bash
+uv sync
+```
+
+Or using pip:
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -e .
+```
+
+3. **Configure GitHub token**
+
+CIFTT requires a GitHub Personal Access Token to interact with the GitHub API.
+
+**Create a token:**
+1. Go to https://github.com/settings/tokens/new
+2. Give it a descriptive name (e.g., "CIFTT CLI")
+3. Select scopes:
+   - ✅ `repo` (required for all operations)
+   - ✅ `project` (required for `--project` and `--fields` options)
+4. Click "Generate token" and copy it
+
+**Provide the token to CIFTT:**
+
+Option A - Export as environment variable (recommended):
+```bash
+export GITHUB_TOKEN=your_token_here
+```
+
+Option B - Using a `.env` file:
+```bash
+# Create .env file in the project root
+echo "GITHUB_TOKEN=your_token_here" > .env
+```
+
+**Note:** Using environment variables is more secure as tokens aren't stored in plain text files on your system.
+
+**For organizations with SSO:** After creating the token, you must authorize it for your organization. Click "Configure SSO" next to the token and authorize the organization.
+
+4. **Verify your setup**
+```bash
+uv run ciftt check-token
+```
+
+This will verify your token is valid and show your permissions.
+
 ## 🚀 Quick Start
 
 ```bash
-# Clone the repo
-git clone https://github.com/hillairet/ciftt.git
-cd ciftt
-
 # Check your GitHub token and permissions
-python ciftt.py check-token
+uv run ciftt check-token
 
 # Create new issues from CSV
-python ciftt.py create-issues input.csv myorg/myrepo
+uv run ciftt create-issues input.csv myorg/myrepo
 
 # Update existing issues (basic fields only)
-python ciftt.py update-issues input.csv
+uv run ciftt update-issues input.csv
 
 # Update existing issues and their project fields from CSV
-python ciftt.py update-issues input.csv --project myorg/123
+uv run ciftt update-issues input.csv --project myorg/123
 
 # Export issues to CSV
-python ciftt.py export-issues myorg/myrepo output.csv
+uv run ciftt export-issues myorg/myrepo output.csv
 
 # Export specific issues
-python ciftt.py export-issues myorg/myrepo output.csv --issues "1,3-5,8"
+uv run ciftt export-issues myorg/myrepo output.csv --issues "1,3-5,8"
 
 # Export all issues (including closed ones)
-python ciftt.py export-issues myorg/myrepo output.csv --all
+uv run ciftt export-issues myorg/myrepo output.csv --all
 
 # Export issues with GitHub Project fields
-python ciftt.py export-issues myorg/myrepo output.csv --fields "Priority,Status,Sprint"
+uv run ciftt export-issues myorg/myrepo output.csv --fields "Priority,Status,Sprint"
 
 # Export specific issues with project fields
-python ciftt.py export-issues myorg/myrepo output.csv --issues "1-10" --fields "Priority,Assignee,Due Date"
+uv run ciftt export-issues myorg/myrepo output.csv --issues "1-10" --fields "Priority,Assignee,Due Date"
 
 # Add issues to a GitHub Project v2 board
-python ciftt.py add-to-project issues.csv myorg/123
+uv run ciftt add-to-project issues.csv myorg/123
 ```
+
+**Alternative:** If you activated the virtual environment with `source .venv/bin/activate`, you can run commands directly: `ciftt check-token`
 
 ## 📄 File Format Support
 
