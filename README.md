@@ -113,6 +113,11 @@ uv run ciftt check-token
 
 This will verify your token is valid and show your permissions.
 
+**No-clone option:** You can also run CIFTT directly from GitHub via `uvx`:
+```bash
+uvx --from "git+https://github.com/hillairet/ciftt.git" ciftt --help
+```
+
 ## 🚀 Quick Start
 
 ```bash
