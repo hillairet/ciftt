@@ -4,7 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["ciftt"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["ciftt*"]
+
+[tool.setuptools.package-data]
+"ciftt.github" = ["queries/*.graphql"]
 
 [project]
 name = "ciftt"
