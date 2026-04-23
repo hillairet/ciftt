@@ -1,0 +1,21 @@
+query FindProjectItemByQuery(
+  $org: String!
+  $number: Int!
+  $first: Int!
+  $q: String!
+) {
+  organization(login: $org) {
+    projectV2(number: $number) {
+      items(first: $first, query: $q) {
+        nodes {
+          id
+          content {
+            ... on Issue {
+              url
+            }
+          }
+        }
+      }
+    }
+  }
+}
