@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Dict, Literal
+from typing import Dict, Literal, Optional
 from urllib.parse import urljoin
 
 import requests
@@ -31,6 +31,9 @@ UPDATE_PROJECT_FIELD_MUTATION = _load_graphql_query("update_project_field.graphq
 VALIDATE_PROJECT_QUERY = _load_graphql_query("validate_project.graphql")
 GET_ISSUE_NODE_ID_QUERY = _load_graphql_query("get_issue_node_id.graphql")
 ADD_PROJECT_ITEM_MUTATION = _load_graphql_query("add_project_item.graphql")
+FIND_PROJECT_ITEM_BY_QUERY_QUERY = _load_graphql_query(
+    "find_project_item_by_query.graphql"
+)
 
 
 class GitHubClient(BaseModel, RateLimitMixin):
@@ -264,6 +267,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
         repo: str,
         issue_number: int,
         project_fields: Dict[str, str],
+        project_owner: str,
         project_number: str,
     ) -> ProjectFieldUpdateResult:
         """
@@ -274,6 +278,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
             repo: Repository name
             issue_number: Issue number
             project_fields: Dictionary of field names to values
+            project_owner: Project owner (user or organization)
             project_number: Project number to update fields for
 
         Returns:
@@ -289,7 +294,38 @@ class GitHubClient(BaseModel, RateLimitMixin):
         projects_info = _extract_project_info_for_updates(issue_data)
 
         if not projects_info:
-            raise ValueError(f"Issue #{issue_number} is not in any GitHub Projects")
+            issue_info = self.get_issue_node_id(owner, repo, issue_number)
+            item_id = self._find_org_project_item_id_by_issue_number(
+                org=project_owner,
+                project_number=project_number,
+                issue_number=issue_number,
+                issue_url=issue_info.url,
+            )
+            if not item_id:
+                raise ValueError(
+                    f"Issue #{issue_number} is not in GitHub Project #{project_number}"
+                )
+
+            available_fields = self.get_project_field_definitions(
+                project_owner, project_number
+            )
+            project_info = self.validate_project_exists(project_owner, project_number)
+
+            updated_fields = {}
+            errors = {}
+            self._update_project_fields(
+                project_fields,
+                available_fields,
+                project_info.id,
+                item_id,
+                project_number,
+                updated_fields,
+                errors,
+            )
+
+            return ProjectFieldUpdateResult(
+                updated_fields=updated_fields, errors=errors
+            )
 
         updated_fields = {}
         errors = {}
@@ -315,6 +351,38 @@ class GitHubClient(BaseModel, RateLimitMixin):
         )
 
         return ProjectFieldUpdateResult(updated_fields=updated_fields, errors=errors)
+
+    def _find_org_project_item_id_by_issue_number(
+        self,
+        org: str,
+        project_number: str,
+        issue_number: int,
+        issue_url: str,
+        *,
+        first: int = 50,
+    ) -> Optional[str]:
+        variables = {
+            "org": org,
+            "number": int(project_number),
+            "first": first,
+            "q": str(issue_number),
+        }
+        response = self.execute_graphql(FIND_PROJECT_ITEM_BY_QUERY_QUERY, variables)
+
+        if "errors" in response:
+            error_msg = ", ".join([error["message"] for error in response["errors"]])
+            raise ValueError(f"Failed to search project items: {error_msg}")
+
+        org_data = response.get("data", {}).get("organization")
+        project_data = (org_data or {}).get("projectV2")
+        items = (project_data or {}).get("items") or {}
+        nodes = items.get("nodes") or []
+        for node in nodes:
+            content = (node or {}).get("content") or {}
+            if content.get("url") == issue_url:
+                return node.get("id")
+
+        return None
 
     def _update_project_fields(
         self,
@@ -534,7 +602,11 @@ class GitHubClient(BaseModel, RateLimitMixin):
             raise ValueError(f"Failed to get issue info: {error_msg}")
 
         data = response.get("data", {})
-        if not data or not data.get("repository") or not data["repository"].get("issue"):
+        if (
+            not data
+            or not data.get("repository")
+            or not data["repository"].get("issue")
+        ):
             raise ValueError(
                 f"Issue {owner}/{repo}#{issue_number} not found or not accessible"
             )

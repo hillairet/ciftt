@@ -111,6 +111,7 @@ def create_issues_in_github(
 def update_issues_in_github(
     github_client: GitHubClient,
     issues: List[UpdatedIssue],
+    target_project_owner: str = None,
     target_project_number: str = None,
 ) -> List[dict]:
     """
@@ -149,7 +150,8 @@ def update_issues_in_github(
 
             # Update project fields only if target project is specified
             if (
-                target_project_number
+                target_project_owner
+                and target_project_number
                 and hasattr(issue, "project_fields")
                 and issue.project_fields
             ):
@@ -159,6 +161,7 @@ def update_issues_in_github(
                         repo_name,
                         issue_number,
                         issue.project_fields,
+                        target_project_owner,
                         target_project_number,
                     )
 

@@ -145,4 +145,4 @@ def update_issues(
 
     issues = transform_csv_to_updated_issues(csv_data)
 
-    update_issues_in_github(github_client, issues, project_number)
+    update_issues_in_github(github_client, issues, project_owner, project_number)
