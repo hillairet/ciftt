@@ -3,6 +3,7 @@ sample*.csv
 sample*.tsv
 .envrc
 testdata/
+docs/superpowers/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -53,31 +53,27 @@ You deserve better. Let the robot do the boring part.
 
 ### Prerequisites
 - Python 3.8 or higher
-- [uv](https://github.com/astral-sh/uv) package manager (recommended) or pip
+- [uv](https://github.com/astral-sh/uv) package manager
 
 ### Setup
 
-1. **Clone the repository**
+1. **Install CIFTT**
+
+Use `uv tool install` to install CIFTT directly from the GitHub repository:
+
 ```bash
-git clone https://github.com/hillairet/ciftt.git
-cd ciftt
+uv tool install git+https://github.com/hillairet/ciftt
 ```
 
-2. **Install dependencies**
+Verify the command is available:
 
-Using `uv` (recommended):
 ```bash
-uv sync
+ciftt --help
 ```
 
-Or using pip:
-```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -e .
-```
+For one-off runs with `uvx` or development setup with `uv sync`, see the [installation guide](docs/installation.md).
 
-3. **Configure GitHub token**
+2. **Configure GitHub token**
 
 CIFTT requires a GitHub Personal Access Token to interact with the GitHub API.
 
@@ -106,53 +102,46 @@ echo "GITHUB_TOKEN=your_token_here" > .env
 
 **For organizations with SSO:** After creating the token, you must authorize it for your organization. Click "Configure SSO" next to the token and authorize the organization.
 
-4. **Verify your setup**
+3. **Verify your setup**
 ```bash
-uv run ciftt check-token
+ciftt check-token
 ```
 
 This will verify your token is valid and show your permissions.
-
-**No-clone option:** You can also run CIFTT directly from GitHub via `uvx`:
-```bash
-uvx --from "git+https://github.com/hillairet/ciftt.git" ciftt --help
-```
 
 ## 🚀 Quick Start
 
 ```bash
 # Check your GitHub token and permissions
-uv run ciftt check-token
+ciftt check-token
 
 # Create new issues from CSV
-uv run ciftt create-issues input.csv myorg/myrepo
+ciftt create-issues input.csv myorg/myrepo
 
 # Update existing issues (basic fields only)
-uv run ciftt update-issues input.csv
+ciftt update-issues input.csv
 
 # Update existing issues and their project fields from CSV
-uv run ciftt update-issues input.csv --project myorg/123
+ciftt update-issues input.csv --project myorg/123
 
 # Export issues to CSV
-uv run ciftt export-issues myorg/myrepo output.csv
+ciftt export-issues myorg/myrepo output.csv
 
 # Export specific issues
-uv run ciftt export-issues myorg/myrepo output.csv --issues "1,3-5,8"
+ciftt export-issues myorg/myrepo output.csv --issues "1,3-5,8"
 
 # Export all issues (including closed ones)
-uv run ciftt export-issues myorg/myrepo output.csv --all
+ciftt export-issues myorg/myrepo output.csv --all
 
 # Export issues with GitHub Project fields
-uv run ciftt export-issues myorg/myrepo output.csv --fields "Priority,Status,Sprint"
+ciftt export-issues myorg/myrepo output.csv --fields "Priority,Status,Sprint"
 
 # Export specific issues with project fields
-uv run ciftt export-issues myorg/myrepo output.csv --issues "1-10" --fields "Priority,Assignee,Due Date"
+ciftt export-issues myorg/myrepo output.csv --issues "1-10" --fields "Priority,Assignee,Due Date"
 
 # Add issues to a GitHub Project v2 board
-uv run ciftt add-to-project issues.csv myorg/123
+ciftt add-to-project issues.csv myorg/123
 ```
-
-**Alternative:** If you activated the virtual environment with `source .venv/bin/activate`, you can run commands directly: `ciftt check-token`
 
 ## 📄 File Format Support
 
@@ -160,12 +149,12 @@ CIFTT supports both **CSV** (Comma-Separated Values) and **TSV** (Tab-Separated 
 
 ```bash
 # CSV files
-python ciftt.py create-issues issues.csv myorg/myrepo
-python ciftt.py update-issues issues.csv --project myorg/123
+ciftt create-issues issues.csv myorg/myrepo
+ciftt update-issues issues.csv --project myorg/123
 
 # TSV files
-python ciftt.py create-issues issues.tsv myorg/myrepo
-python ciftt.py update-issues issues.tsv --project myorg/123
+ciftt create-issues issues.tsv myorg/myrepo
+ciftt update-issues issues.tsv --project myorg/123
 ```
 
 ### Creating Issues
@@ -232,10 +221,10 @@ The `update-issues` command can update both standard issue fields and GitHub Pro
 **Use cases:**
 ```bash
 # Update only issue fields (title, description, labels, etc.) - no project needed
-python ciftt.py update-issues updated_issues.csv
+ciftt update-issues updated_issues.csv
 
 # Update both issue fields AND project fields - requires --project option
-python ciftt.py update-issues updated_issues.csv --project owner/123
+ciftt update-issues updated_issues.csv --project owner/123
 ```
 
 CIFTT automatically detects project field columns (any column that isn't a standard issue field). If project field columns are present in your CSV but you don't provide the `--project` option, CIFTT will show a warning and skip updating those fields.
@@ -248,12 +237,12 @@ CIFTT automatically detects project field columns (any column that isn't a stand
 
 ```bash
 # Update issues and project fields using different identifier formats
-python ciftt.py update-issues updated_issues.csv --project owner/123
-python ciftt.py update-issues updated_issues.csv --project owner/projects/123
-python ciftt.py update-issues updated_issues.csv --project https://github.com/users/owner/projects/123
+ciftt update-issues updated_issues.csv --project owner/123
+ciftt update-issues updated_issues.csv --project owner/projects/123
+ciftt update-issues updated_issues.csv --project https://github.com/users/owner/projects/123
 
 # Use short flag -p
-python ciftt.py update-issues updated_issues.csv -p owner/123
+ciftt update-issues updated_issues.csv -p owner/123
 ```
 
 **Note:** Project field updates only work with `update-issues` (not `create-issues`) because newly created issues aren't immediately added to projects.
@@ -275,14 +264,14 @@ https://github.com/owner/repo/issues/3
 **Usage:**
 ```bash
 # Add issues from CSV to a project
-python ciftt.py add-to-project issues.csv owner/123
+ciftt add-to-project issues.csv owner/123
 
 # All project identifier formats are supported
-python ciftt.py add-to-project issues.csv owner/projects/123
-python ciftt.py add-to-project issues.csv https://github.com/orgs/owner/projects/123
+ciftt add-to-project issues.csv owner/projects/123
+ciftt add-to-project issues.csv https://github.com/orgs/owner/projects/123
 
 # Dry-run to preview what will be added
-python ciftt.py add-to-project issues.csv owner/123 --dry-run
+ciftt add-to-project issues.csv owner/123 --dry-run
 ```
 
 **Features:**
@@ -296,7 +285,7 @@ python ciftt.py add-to-project issues.csv owner/123 --dry-run
 Before importing or exporting issues, you can validate your GitHub token:
 
 ```bash
-python ciftt.py check-token
+ciftt check-token
 ```
 
 This command will:
