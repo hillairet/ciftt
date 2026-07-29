@@ -9,11 +9,13 @@ from ciftt.github.data import IssueNodeInfo, ProjectInfo
 def test_update_issue_project_fields_falls_back_to_project_scan(monkeypatch):
     client = GitHubClient(api_key="x")
 
-    def fake_get_project_item_info(owner: str, repo: str, issue_number: int) -> dict:
+    def fake_get_project_item_info(
+        _self: GitHubClient, owner: str, repo: str, issue_number: int
+    ) -> dict:
         return {"projectItems": {"nodes": []}}
 
     def fake_get_issue_node_id(
-        owner: str, repo: str, issue_number: int
+        _self: GitHubClient, owner: str, repo: str, issue_number: int
     ) -> IssueNodeInfo:
         return IssueNodeInfo(
             id="ISSUE_ID",
@@ -22,7 +24,9 @@ def test_update_issue_project_fields_falls_back_to_project_scan(monkeypatch):
             url=f"https://github.com/{owner}/{repo}/issues/{issue_number}",
         )
 
-    def fake_validate_project_exists(owner: str, project_number: str) -> ProjectInfo:
+    def fake_validate_project_exists(
+        _self: GitHubClient, owner: str, project_number: str
+    ) -> ProjectInfo:
         return ProjectInfo(
             id="PVT_ID",
             title="P",
@@ -32,7 +36,9 @@ def test_update_issue_project_fields_falls_back_to_project_scan(monkeypatch):
             type="organization",
         )
 
-    def fake_get_project_field_definitions(owner: str, project_number: str) -> dict:
+    def fake_get_project_field_definitions(
+        _self: GitHubClient, owner: str, project_number: str
+    ) -> dict:
         return {
             "Priority": {
                 "id": "FIELD_ID",
@@ -43,11 +49,15 @@ def test_update_issue_project_fields_falls_back_to_project_scan(monkeypatch):
 
     calls = {"update": []}
 
-    def fake_update_project_field(project_id: str, item_id: str, field_id: str, value):
+    def fake_update_project_field(
+        _self: GitHubClient, project_id: str, item_id: str, field_id: str, value
+    ):
         calls["update"].append((project_id, item_id, field_id, value.model_dump()))
         return {}
 
-    def fake_execute_graphql(query: str, variables: Optional[dict] = None) -> dict:
+    def fake_execute_graphql(
+        _self: GitHubClient, query: str, variables: Optional[dict] = None
+    ) -> dict:
         if query == FIND_PROJECT_ITEM_BY_QUERY_QUERY:
             assert (variables or {}).get("q") == "10537"
             return {
@@ -76,14 +86,14 @@ def test_update_issue_project_fields_falls_back_to_project_scan(monkeypatch):
             }
         return {"data": {}}
 
-    monkeypatch.setattr(client, "get_project_item_info", fake_get_project_item_info)
-    monkeypatch.setattr(client, "get_issue_node_id", fake_get_issue_node_id)
-    monkeypatch.setattr(client, "validate_project_exists", fake_validate_project_exists)
+    monkeypatch.setattr(GitHubClient, "get_project_item_info", fake_get_project_item_info)
+    monkeypatch.setattr(GitHubClient, "get_issue_node_id", fake_get_issue_node_id)
+    monkeypatch.setattr(GitHubClient, "validate_project_exists", fake_validate_project_exists)
     monkeypatch.setattr(
-        client, "get_project_field_definitions", fake_get_project_field_definitions
+        GitHubClient, "get_project_field_definitions", fake_get_project_field_definitions
     )
-    monkeypatch.setattr(client, "update_project_field", fake_update_project_field)
-    monkeypatch.setattr(client, "execute_graphql", fake_execute_graphql)
+    monkeypatch.setattr(GitHubClient, "update_project_field", fake_update_project_field)
+    monkeypatch.setattr(GitHubClient, "execute_graphql", fake_execute_graphql)
 
     result = client.update_issue_project_fields(
         owner="cloud-custodian",
@@ -107,7 +117,9 @@ def test_update_issue_project_fields_falls_back_to_project_scan(monkeypatch):
 def test_find_org_project_item_id_by_issue_number_uses_query(monkeypatch):
     client = GitHubClient(api_key="x")
 
-    def fake_execute_graphql(query: str, variables: Optional[dict] = None) -> dict:
+    def fake_execute_graphql(
+        _self: GitHubClient, query: str, variables: Optional[dict] = None
+    ) -> dict:
         assert query == FIND_PROJECT_ITEM_BY_QUERY_QUERY
         assert (variables or {}).get("q") == "25"
         return {
@@ -127,7 +139,7 @@ def test_find_org_project_item_id_by_issue_number_uses_query(monkeypatch):
             }
         }
 
-    monkeypatch.setattr(client, "execute_graphql", fake_execute_graphql)
+    monkeypatch.setattr(GitHubClient, "execute_graphql", fake_execute_graphql)
 
     item_id = client._find_org_project_item_id_by_issue_number(
         org="stacklet",
