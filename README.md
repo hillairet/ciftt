@@ -143,142 +143,43 @@ ciftt export-issues myorg/myrepo output.csv --issues "1-10" --fields "Priority,A
 ciftt add-to-project issues.csv myorg/123
 ```
 
+## 📚 Guides
+
+- [Installation](docs/installation.md): install CIFTT, run it with `uvx`, or set up a development checkout.
+- [Exporting issues](docs/export.md): export repository issues to CSV, include GitHub Project v2 fields, and understand behavior when issues belong to multiple projects.
+- [Importing and updating issues](docs/import.md): create issues, update existing issues, add issues to projects, and update Project v2 fields from CSV or TSV files.
+
 ## 📄 File Format Support
 
-CIFTT supports both **CSV** (Comma-Separated Values) and **TSV** (Tab-Separated Values) files as input. Simply provide the file path with the appropriate extension (`.csv` or `.tsv`) and CIFTT will automatically detect and parse the format correctly.
+CIFTT supports CSV and TSV input files. Column names are case-sensitive.
 
-```bash
-# CSV files
-ciftt create-issues issues.csv myorg/myrepo
-ciftt update-issues issues.csv --project myorg/123
+For creating issues, `Title` is required:
 
-# TSV files
-ciftt create-issues issues.tsv myorg/myrepo
-ciftt update-issues issues.tsv --project myorg/123
-```
-
-### Creating Issues
-For creating new issues, your file should include headers like:
 ```csv
 Title,Description,Labels,Assignee
 ```
 
-**Note:** Column names are case-sensitive. Use proper case (Title, Description, etc.).
+For updating issues, `URL` is required:
 
-Only the `Title` column is mandatory to create an issue.
-
-### Updating Issues
-For updating existing issues, your file must include the `URL` column to identify which issues to update:
 ```csv
 Title,Description,Labels,Assignee,URL
 ```
 
-To also update GitHub Project v2 fields, add those columns and use the `--project` option:
+For Project v2 field updates, add project field columns and use `--project`:
+
 ```csv
 Title,Description,Labels,Assignee,URL,Priority,Status,Sprint
 ```
 
-**Note:** Column names are case-sensitive. Standard issue fields use proper case (Title, Description, Labels, Assignee, URL) while project field names match exactly as they appear in your GitHub Project.
-
-- The `URL` column is **required** for updates (to identify which issue to update)
-- Any additional columns beyond standard issue fields are treated as GitHub Project v2 fields
-- Project fields are **only updated** when the `--project` option is provided
-- A warning is shown if project field columns exist in the CSV but no `--project` is specified
-
-**State Management:**
-- The optional `State` column allows you to open or close issues
-  - Accepted values: `open` or `closed`
-  - Example: `State,URL` → `closed,https://github.com/owner/repo/issues/123`
-- The optional `StateReason` column specifies why an issue was closed
-  - Valid values: `completed` (default), `not_planned`, `duplicate`, or `reopened`
-  - Only applies when `State` is `closed`
-  - Example CSV: `State,StateReason,URL` → `closed,duplicate,https://github.com/...`
-
-**Important: Labels are completely replaced, not merged**
-- When you specify labels in your CSV, they **completely replace** the existing labels on the issue
-- To preserve existing labels, include them in your CSV along with any new labels
-- Example: If an issue has label `bug` and your CSV contains `"enhancement,ui"`, the result will be only `enhancement` and `ui` (the `bug` label will be removed)
-- To keep all labels: Export issues first, edit the CSV to include both existing and new labels (e.g., `"bug,enhancement,ui"`), then update
-
-**Format Notes:**
-- CSV files use commas as separators: `Title,Description,URL`
-- TSV files use tabs as separators: `Title	Description	URL`
-- When exporting, CIFTT always outputs CSV format with newlines preserved as "\n" characters
+See [Importing and Updating Issues](docs/import.md) for state management, label replacement behavior, project field updates, and `add-to-project` usage.
 
 ## 🎯 GitHub Project v2 Integration
 
-### Exporting with Project Fields
-When using the `--fields` option during export, CIFTT will fetch GitHub Project v2 field values and include them as additional columns in your CSV:
+CIFTT can export selected Project v2 fields with `--fields`, update target project fields with `--project`, and bulk add existing issues to a project with `add-to-project`.
 
-```csv
-Title,Description,Labels,Assignee,URL,Priority,Status,Sprint
-"Fix login bug","User cannot login with special characters","bug,high-priority","john","https://github.com/myorg/myrepo/issues/42","High","In Progress","Sprint 23"
-```
+Project field export is repository-based, not project-based. If issues belong to multiple projects, CIFTT extracts requested fields by exact field name from the project items attached to each issue. See [Exporting Issues](docs/export.md) for the full behavior and transfer caveats.
 
-### Updating Project Fields
-The `update-issues` command can update both standard issue fields and GitHub Project v2 fields. The `--project` option is **optional** and only required when you want to update project fields.
-
-**Use cases:**
-```bash
-# Update only issue fields (title, description, labels, etc.) - no project needed
-ciftt update-issues updated_issues.csv
-
-# Update both issue fields AND project fields - requires --project option
-ciftt update-issues updated_issues.csv --project owner/123
-```
-
-CIFTT automatically detects project field columns (any column that isn't a standard issue field). If project field columns are present in your CSV but you don't provide the `--project` option, CIFTT will show a warning and skip updating those fields.
-
-**Supported project identifier formats:**
-- Full URLs: `https://github.com/users/owner/projects/123`
-- Full URLs: `https://github.com/orgs/myorg/projects/456`
-- Short format: `owner/projects/123`
-- Shortest format: `owner/123`
-
-```bash
-# Update issues and project fields using different identifier formats
-ciftt update-issues updated_issues.csv --project owner/123
-ciftt update-issues updated_issues.csv --project owner/projects/123
-ciftt update-issues updated_issues.csv --project https://github.com/users/owner/projects/123
-
-# Use short flag -p
-ciftt update-issues updated_issues.csv -p owner/123
-```
-
-**Note:** Project field updates only work with `update-issues` (not `create-issues`) because newly created issues aren't immediately added to projects.
-
-This allows you to export issues with their current project field values, modify them in your spreadsheet, and then re-import to update both the issues and their project fields.
-
-### Adding Issues to Projects
-
-The `add-to-project` command adds existing GitHub issues to a Project v2 board. This is useful when you have a list of issue URLs and want to bulk add them to a project.
-
-**CSV Format:**
-```csv
-URL
-https://github.com/owner/repo/issues/1
-https://github.com/owner/repo/issues/2
-https://github.com/owner/repo/issues/3
-```
-
-**Usage:**
-```bash
-# Add issues from CSV to a project
-ciftt add-to-project issues.csv owner/123
-
-# All project identifier formats are supported
-ciftt add-to-project issues.csv owner/projects/123
-ciftt add-to-project issues.csv https://github.com/orgs/owner/projects/123
-
-# Dry-run to preview what will be added
-ciftt add-to-project issues.csv owner/123 --dry-run
-```
-
-**Features:**
-- Idempotent operation - safe to run multiple times (issues already in the project are skipped automatically by GitHub)
-- Supports issues from multiple repositories in a single CSV
-- Validates all issues exist and are accessible before adding
-- Clear progress reporting for each issue added
+Supported project identifier formats include `owner/123`, `owner/projects/123`, and full GitHub project URLs.
 
 ## 🔐 Token Validation
 
