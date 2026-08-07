@@ -36,6 +36,10 @@ FIND_PROJECT_ITEM_BY_QUERY_QUERY = _load_graphql_query(
 )
 
 
+def _is_pull_request(issue: dict) -> bool:
+    return "pull_request" in issue
+
+
 class GitHubClient(BaseModel, RateLimitMixin):
     api_key: str
     url: str = "https://api.github.com/"
@@ -76,7 +80,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
             if not issues:
                 break
 
-            all_issues.extend(issues)
+            all_issues.extend(issue for issue in issues if not _is_pull_request(issue))
             page += 1
 
             # If we got fewer issues than the page size, we've reached the end
@@ -92,7 +96,8 @@ class GitHubClient(BaseModel, RateLimitMixin):
             try:
                 endpoint = f"repos/{owner}/{repo}/issues/{issue_num}"
                 issue = self._get_request(endpoint)
-                all_issues.append(issue)
+                if not _is_pull_request(issue):
+                    all_issues.append(issue)
             except Exception as e:
                 logging.warning(f"Failed to fetch issue #{issue_num}: {e}")
 

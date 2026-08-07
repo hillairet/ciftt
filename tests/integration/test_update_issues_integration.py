@@ -311,9 +311,7 @@ class TestUpdateIssuesIntegration:
         )
         assert "Status" in captured.out
 
-    def test_update_issues_with_state_reason(
-        self, tmp_path, mock_github_client
-    ):
+    def test_update_issues_with_state_reason(self, tmp_path, mock_github_client):
         """Test that StateReason column is properly sent to GitHub API."""
         csv_file = tmp_path / "state_reason.csv"
         csv_file.write_text(

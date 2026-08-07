@@ -1,7 +1,5 @@
 from typing import Optional
 
-import pytest
-
 from ciftt.github.client import FIND_PROJECT_ITEM_BY_QUERY_QUERY, GitHubClient
 from ciftt.github.data import IssueNodeInfo, ProjectInfo
 
@@ -86,11 +84,17 @@ def test_update_issue_project_fields_falls_back_to_project_scan(monkeypatch):
             }
         return {"data": {}}
 
-    monkeypatch.setattr(GitHubClient, "get_project_item_info", fake_get_project_item_info)
-    monkeypatch.setattr(GitHubClient, "get_issue_node_id", fake_get_issue_node_id)
-    monkeypatch.setattr(GitHubClient, "validate_project_exists", fake_validate_project_exists)
     monkeypatch.setattr(
-        GitHubClient, "get_project_field_definitions", fake_get_project_field_definitions
+        GitHubClient, "get_project_item_info", fake_get_project_item_info
+    )
+    monkeypatch.setattr(GitHubClient, "get_issue_node_id", fake_get_issue_node_id)
+    monkeypatch.setattr(
+        GitHubClient, "validate_project_exists", fake_validate_project_exists
+    )
+    monkeypatch.setattr(
+        GitHubClient,
+        "get_project_field_definitions",
+        fake_get_project_field_definitions,
     )
     monkeypatch.setattr(GitHubClient, "update_project_field", fake_update_project_field)
     monkeypatch.setattr(GitHubClient, "execute_graphql", fake_execute_graphql)

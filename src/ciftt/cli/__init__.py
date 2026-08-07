@@ -4,4 +4,10 @@ from .create_issues import create_issues
 from .export_issues import export_issues
 from .update_issues import update_issues
 
-__all__ = ["add_to_project", "export_issues", "create_issues", "update_issues", "check_token"]
+__all__ = [
+    "add_to_project",
+    "export_issues",
+    "create_issues",
+    "update_issues",
+    "check_token",
+]

@@ -2,7 +2,11 @@ from typing import Dict, List, Set, Tuple
 
 import typer
 
-from ciftt.utils import extract_issue_number, extract_repo_from_issue_url, parse_github_project_identifier
+from ciftt.utils import (
+    extract_issue_number,
+    extract_repo_from_issue_url,
+    parse_github_project_identifier,
+)
 
 from .common import (
     handle_cli_error,
@@ -48,15 +52,19 @@ def _extract_issues_from_csv(csv_data) -> List[Dict[str, any]]:
             issue_number = extract_issue_number(issue_url)
 
             if not issue_number:
-                typer.echo(f"⚠️  Warning: Could not extract issue number from {issue_url}")
+                typer.echo(
+                    f"⚠️  Warning: Could not extract issue number from {issue_url}"
+                )
                 continue
 
-            issues.append({
-                "url": issue_url,
-                "owner": owner,
-                "repo": repo_name,
-                "number": issue_number,
-            })
+            issues.append(
+                {
+                    "url": issue_url,
+                    "owner": owner,
+                    "repo": repo_name,
+                    "number": issue_number,
+                }
+            )
         except ValueError as e:
             typer.echo(f"⚠️  Warning: Skipping invalid URL {issue_url}: {e}")
             continue
@@ -64,9 +72,13 @@ def _extract_issues_from_csv(csv_data) -> List[Dict[str, any]]:
     return issues
 
 
-def _perform_dry_run(issues: List[Dict[str, any]], project_owner: str, project_number: str) -> None:
+def _perform_dry_run(
+    issues: List[Dict[str, any]], project_owner: str, project_number: str
+) -> None:
     typer.echo("🧪 DRY RUN MODE: No changes will be made on GitHub")
-    typer.echo(f"Would add {len(issues)} issues to project {project_owner}/{project_number}:")
+    typer.echo(
+        f"Would add {len(issues)} issues to project {project_owner}/{project_number}:"
+    )
     for issue in issues:
         typer.echo(f"  • {issue['owner']}/{issue['repo']}#{issue['number']}")
 
@@ -121,9 +133,7 @@ def add_to_project(
         project_info = github_client.validate_project_exists(
             project_owner, project_number
         )
-        typer.echo(
-            f"✅ Project validated: {project_info.title} ({project_info.type})"
-        )
+        typer.echo(f"✅ Project validated: {project_info.title} ({project_info.type})")
     except ValueError as e:
         handle_cli_error("Project validation", e)
 
@@ -142,9 +152,7 @@ def add_to_project(
                 project_info.id, issue_info.id, issue["number"], issue["url"]
             )
 
-            typer.echo(
-                f"✅ Added #{result.issue_number}: {issue_info.title}"
-            )
+            typer.echo(f"✅ Added #{result.issue_number}: {issue_info.title}")
             added_count += 1
 
         except ValueError as e:
