@@ -40,6 +40,11 @@ def _is_pull_request(issue: dict) -> bool:
     return "pull_request" in issue
 
 
+def _has_next_page(headers: dict) -> bool:
+    link_header = headers.get("Link", "")
+    return 'rel="next"' in link_header
+
+
 class GitHubClient(BaseModel, RateLimitMixin):
     api_key: str
     url: str = "https://api.github.com/"
@@ -75,7 +80,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
 
         while True:
             params["page"] = page
-            issues = self._get_request(endpoint, params)
+            issues, headers = self._get_request(endpoint, params, return_headers=True)
 
             if not issues:
                 break
@@ -83,8 +88,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
             all_issues.extend(issue for issue in issues if not _is_pull_request(issue))
             page += 1
 
-            # If we got fewer issues than the page size, we've reached the end
-            if len(issues) < 100:
+            if not _has_next_page(headers):
                 break
 
         return all_issues
@@ -103,11 +107,15 @@ class GitHubClient(BaseModel, RateLimitMixin):
 
         return all_issues
 
-    def _get_request(self, endpoint: str, params: dict = None) -> dict:
+    def _get_request(
+        self, endpoint: str, params: dict = None, return_headers: bool = False
+    ) -> dict:
         """Make a GET request to the GitHub API."""
         if params is None:
             params = {}
-        return self._request("GET", endpoint, params=params)
+        return self._request(
+            "GET", endpoint, params=params, return_headers=return_headers
+        )
 
     def _post_request(self, endpoint: str, data: dict) -> dict:
         """Make a POST request to the GitHub API."""
