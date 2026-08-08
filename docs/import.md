@@ -147,12 +147,13 @@ ciftt add-to-project issues.csv owner/123 --dry-run
 
 ## Transfer Workflow
 
-To transfer existing issues and selected Project v2 fields from one project to another:
+To transfer issues into another repository before restoring project fields, use `transfer-issues`:
 
 ```bash
-ciftt export-issues owner/repo issues.csv --fields "Priority,Status,Sprint"
-ciftt add-to-project issues.csv target-owner/123
-ciftt update-issues issues.csv --project target-owner/123
+ciftt export-issues owner/repo exported.csv --all --fields "Priority,Status,Sprint"
+ciftt transfer-issues exported.csv transferred.csv target-owner/target-repo
+ciftt add-to-project transferred.csv target-owner/123
+ciftt update-issues transferred.csv --project target-owner/123
 ```
 
-Review [Exporting Issues](export.md) for details about how project field export behaves when issues belong to multiple projects.
+Review [Transferring Issues](transfer.md) for transfer behavior, resume behavior, closed issue handling, and description correction.

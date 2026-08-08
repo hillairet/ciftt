@@ -141,6 +141,9 @@ ciftt export-issues myorg/myrepo output.csv --issues "1-10" --fields "Priority,A
 
 # Add issues to a GitHub Project v2 board
 ciftt add-to-project issues.csv myorg/123
+
+# Transfer issues into another repository and write destination URLs
+ciftt transfer-issues exported.csv transferred.csv myorg/target-repo
 ```
 
 ## 📚 Guides
@@ -148,6 +151,7 @@ ciftt add-to-project issues.csv myorg/123
 - [Installation](docs/installation.md): install CIFTT, run it with `uvx`, or set up a development checkout.
 - [Exporting issues](docs/export.md): export repository issues to CSV, include GitHub Project v2 fields, and understand behavior when issues belong to multiple projects.
 - [Importing and updating issues](docs/import.md): create issues, update existing issues, add issues to projects, and update Project v2 fields from CSV or TSV files.
+- [Transferring issues](docs/transfer.md): transfer issues into another repository, resume partial transfers, and restore project fields after transfer.
 
 ## 📄 File Format Support
 
