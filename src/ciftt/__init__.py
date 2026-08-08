@@ -10,6 +10,7 @@ from ciftt.cli import (
     check_token,
     create_issues,
     export_issues,
+    transfer_issues,
     update_issues,
 )
 
@@ -18,6 +19,7 @@ app = typer.Typer(help="CIFTT - CSV Input for Feature Triage and Tracking")
 app.command()(create_issues)
 app.command()(update_issues)
 app.command()(export_issues)
+app.command()(transfer_issues)
 app.command()(add_to_project)
 app.command()(check_token)
 

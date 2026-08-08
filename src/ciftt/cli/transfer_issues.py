@@ -1,11 +1,18 @@
 import csv
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 import typer
 
-from ciftt.utils import IssueUrlParts, parse_github_issue_or_pull_url
+from ciftt.cli.common import handle_cli_error, setup_github_client_for_command
+from ciftt.github.client import GitHubClient
+from ciftt.utils import (
+    IssueUrlParts,
+    parse_github_issue_or_pull_url,
+    parse_repo,
+    safe_decode,
+)
 
 
 @dataclass
@@ -32,7 +39,7 @@ def _load_transfer_rows(input_file: str) -> tuple[list[str], list[TransferRow], 
             raise ValueError("URL column is required for transfer-issues")
 
         for row in reader:
-            url = row.get("URL") or ""
+            url = safe_decode(row.get("URL") or "")
             parts = parse_github_issue_or_pull_url(url)
             if parts.kind == "pull":
                 typer.echo(f"⚠️ Skipping pull request URL: {url}")
@@ -68,3 +75,133 @@ def _load_existing_output_urls(output_file: str, target_repo: str) -> dict[str, 
 
 def _strip_output_columns(headers: list[str]) -> list[str]:
     return [header for header in headers if header != "Assignee"]
+
+
+def _repositories_from_rows(
+    rows: list[TransferRow], target_repo: str
+) -> list[tuple[str, str]]:
+    repositories = {(row.source_parts.owner, row.source_parts.repo) for row in rows}
+    repositories.add(parse_repo(target_repo))
+    return sorted(repositories)
+
+
+def _write_transfer_output(
+    output_file: str, headers: list[str], rows: list[TransferRow], delimiter: str
+) -> None:
+    output_headers = _strip_output_columns(headers)
+    with open(output_file, "w", newline="", encoding="utf-8") as file_obj:
+        writer = csv.DictWriter(
+            file_obj,
+            fieldnames=output_headers,
+            delimiter=delimiter,
+            extrasaction="ignore",
+        )
+        writer.writeheader()
+        for transfer_row in rows:
+            if not transfer_row.destination_url:
+                continue
+            output_row = dict(transfer_row.row)
+            output_row["URL"] = transfer_row.destination_url
+            writer.writerow(output_row)
+
+
+def _transfer_rows(
+    github_client: GitHubClient,
+    rows: list[TransferRow],
+    target_repo: str,
+    target_repo_id: str,
+    limit: int,
+    existing_output_urls: dict[str, str],
+    dry_run: bool,
+) -> tuple[int, int, int]:
+    transferred = 0
+    skipped = 0
+    errors = 0
+
+    for index, row in enumerate(rows, start=1):
+        existing_url = existing_output_urls.get(str(index))
+        if existing_url:
+            row.destination_url = existing_url
+            typer.echo(f"⏭️ Row {index}: already transferred -> {existing_url}")
+            skipped += 1
+            continue
+
+        if limit > 0 and transferred >= limit:
+            typer.echo(f"⏹️ Reached --limit {limit}")
+            break
+
+        if dry_run:
+            typer.echo(f"DRY RUN: Would transfer {row.source_url} -> {target_repo}")
+            skipped += 1
+            continue
+
+        try:
+            info = github_client.get_transfer_issue_info(
+                row.source_parts.owner, row.source_parts.repo, row.source_parts.number
+            )
+            row.parent_number = info.parent_number
+            destination = github_client.transfer_issue(info.id, target_repo_id)
+            row.destination_url = destination.url
+            row.destination_node_id = destination.id
+            transferred += 1
+            typer.echo(f"✅ Transferred {row.source_url} -> {destination.url}")
+        except Exception as exc:
+            errors += 1
+            typer.echo(f"❌ Failed to transfer {row.source_url}: {exc}")
+
+    return transferred, skipped, errors
+
+
+def transfer_issues(
+    input_file: str = typer.Argument(..., help="Path to the input CSV/TSV file"),
+    output_file: str = typer.Argument(..., help="Path to write transferred CSV/TSV"),
+    target_repo: str = typer.Argument(
+        ..., help="Target repository in owner/repo format"
+    ),
+    limit: int = typer.Option(
+        0,
+        "--limit",
+        min=0,
+        help="Stop after N newly transferred issues; 0 is unlimited",
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", "-d", help="Print actions without transferring issues"
+    ),
+):
+    """Transfer GitHub issues to another repository and write destination URLs."""
+    try:
+        target_owner, target_name = parse_repo(target_repo)
+        headers, rows, delimiter = _load_transfer_rows(input_file)
+        existing_output_urls = _load_existing_output_urls(output_file, target_repo)
+    except Exception as exc:
+        handle_cli_error("Transfer setup", exc)
+
+    repositories = _repositories_from_rows(rows, target_repo)
+    setup_client = cast(Any, transfer_issues).setup_github_client_for_command
+    github_client = setup_client(required_scopes=["repo"], repositories=repositories)
+
+    try:
+        target_repo_id = github_client.get_repository_node_id(target_owner, target_name)
+        transferred, skipped, errors = _transfer_rows(
+            github_client,
+            rows,
+            target_repo,
+            target_repo_id,
+            limit,
+            existing_output_urls,
+            dry_run,
+        )
+        _write_transfer_output(output_file, headers, rows, delimiter)
+    except Exception as exc:
+        handle_cli_error("Transfer", exc)
+
+    typer.echo(
+        f"🎉 Transfer complete. Transferred: {transferred}; skipped: {skipped}; errors: {errors}"
+    )
+    if errors:
+        raise typer.Exit(code=1)
+
+
+cast(
+    Any, transfer_issues
+).setup_github_client_for_command = setup_github_client_for_command
