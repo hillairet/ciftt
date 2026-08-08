@@ -196,6 +196,33 @@ def _transfer_rows(
     return transferred, skipped, errors
 
 
+def _relink_sub_issues(github_client: GitHubClient, rows: list[TransferRow]) -> int:
+    destination_nodes_by_source_number = {
+        row.source_parts.number: row.destination_node_id
+        for row in rows
+        if row.destination_node_id
+    }
+    linked = 0
+
+    for row in rows:
+        if not row.parent_number or not row.destination_node_id:
+            continue
+
+        parent_node_id = destination_nodes_by_source_number.get(row.parent_number)
+        if not parent_node_id:
+            typer.echo(
+                f"⚠️ Cannot relink child {row.destination_url}: "
+                f"parent #{row.parent_number} was not transferred in this run"
+            )
+            continue
+
+        github_client.add_sub_issue(parent_node_id, row.destination_node_id)
+        linked += 1
+        typer.echo(f"🔗 Relinked sub-issue {row.destination_url}")
+
+    return linked
+
+
 def transfer_issues(
     input_file: str = typer.Argument(..., help="Path to the input CSV/TSV file"),
     output_file: str = typer.Argument(..., help="Path to write transferred CSV/TSV"),
@@ -236,13 +263,16 @@ def transfer_issues(
             existing_output_urls,
             dry_run,
         )
+        linked = _relink_sub_issues(github_client, rows) if not dry_run else 0
         if not dry_run:
             _write_transfer_output(output_file, headers, rows, delimiter)
     except Exception as exc:
         handle_cli_error("Transfer", exc)
 
     typer.echo(
-        f"🎉 Transfer complete. Transferred: {transferred}; skipped: {skipped}; errors: {errors}"
+        "🎉 Transfer complete. "
+        f"Transferred: {transferred}; skipped: {skipped}; "
+        f"linked sub-issues: {linked}; errors: {errors}"
     )
     if errors:
         raise typer.Exit(code=1)

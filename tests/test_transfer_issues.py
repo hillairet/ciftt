@@ -223,6 +223,59 @@ def test_transfer_issues_command_writes_output_with_destination_url(
     assert ("transfer_issue", "I_source_1", "R_target") in fake_client.calls
 
 
+class FakeSubIssueClient(FakeTransferClient):
+    def get_transfer_issue_info(self, owner, repo, issue_number):
+        from ciftt.github.data import TransferIssueInfo
+
+        parent_number = None if issue_number == 1 else 1
+        return TransferIssueInfo(
+            id=f"I_source_{issue_number}",
+            number=issue_number,
+            url=f"https://github.com/{owner}/{repo}/issues/{issue_number}",
+            state="OPEN",
+            parent_number=parent_number,
+        )
+
+    def transfer_issue(self, issue_id, repository_id):
+        from ciftt.github.data import TransferredIssue
+
+        number = 101 if issue_id == "I_source_1" else 102
+        return TransferredIssue(
+            id=f"I_dest_{number}",
+            number=number,
+            url=f"https://github.com/target/repo/issues/{number}",
+        )
+
+    def add_sub_issue(self, parent_id, child_id):
+        self.calls.append(("add_sub_issue", parent_id, child_id))
+
+
+def test_transfer_issues_relinks_sub_issues(tmp_path, monkeypatch):
+    input_file = tmp_path / "input.csv"
+    output_file = tmp_path / "output.csv"
+    input_file.write_text(
+        "Title,URL\n"
+        "Parent,https://github.com/source/repo/issues/1\n"
+        "Child,https://github.com/source/repo/issues/2\n",
+        encoding="utf-8",
+    )
+    fake_client = FakeSubIssueClient()
+
+    monkeypatch.setattr(
+        transfer_module,
+        "setup_github_client_for_command",
+        lambda required_scopes, repositories: fake_client,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        ["transfer-issues", str(input_file), str(output_file), "target/repo"],
+    )
+
+    assert result.exit_code == 0
+    assert ("add_sub_issue", "I_dest_101", "I_dest_102") in fake_client.calls
+
+
 def test_transfer_issues_command_honors_limit(tmp_path, monkeypatch):
     input_file = tmp_path / "input.csv"
     output_file = tmp_path / "output.csv"
