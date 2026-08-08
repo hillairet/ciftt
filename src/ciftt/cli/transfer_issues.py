@@ -7,6 +7,7 @@ import typer
 
 from ciftt.cli.common import handle_cli_error, setup_github_client_for_command
 from ciftt.github.client import GitHubClient
+from ciftt.github.data import UpdatedIssue
 from ciftt.utils import (
     IssueUrlParts,
     parse_github_issue_or_pull_url,
@@ -85,6 +86,27 @@ def _closed_issue_transfer_comment(target_repo: str) -> str:
     )
 
 
+def _patch_destination_description_if_needed(
+    github_client: GitHubClient, row: TransferRow
+) -> bool:
+    description = row.row.get("Description")
+    if description is None or str(description).strip() == "":
+        return False
+
+    if not row.destination_url:
+        return False
+
+    destination_parts = parse_github_issue_or_pull_url(row.destination_url)
+    issue_update = UpdatedIssue(
+        URL=row.destination_url,
+        Description=safe_decode(str(description)),
+    )
+    github_client.update_issue(
+        destination_parts.owner, destination_parts.repo, issue_update
+    )
+    return True
+
+
 def _repositories_from_rows(
     rows: list[TransferRow], target_repo: str
 ) -> list[tuple[str, str]]:
@@ -130,6 +152,7 @@ def _transfer_rows(
         existing_url = existing_output_urls.get(str(index))
         if existing_url:
             row.destination_url = existing_url
+            _patch_destination_description_if_needed(github_client, row)
             typer.echo(f"⏭️ Row {index}: already transferred -> {existing_url}")
             skipped += 1
             continue
@@ -162,6 +185,7 @@ def _transfer_rows(
 
             row.destination_url = destination.url
             row.destination_node_id = destination.id
+            _patch_destination_description_if_needed(github_client, row)
             transferred += 1
             typer.echo(f"✅ Transferred {row.source_url} -> {destination.url}")
         except Exception as exc:

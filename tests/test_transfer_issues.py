@@ -127,6 +127,65 @@ class FakeTransferClient:
             url="https://github.com/target/repo/issues/101",
         )
 
+    def update_issue(self, owner, repo, issue_update):
+        self.calls.append(
+            (
+                "update_issue",
+                owner,
+                repo,
+                issue_update.issue_number,
+                issue_update.body,
+            )
+        )
+        return {"number": issue_update.issue_number, "title": "patched"}
+
+
+class FakeDescriptionClient(FakeTransferClient):
+    def update_issue(self, owner, repo, issue_update):
+        self.calls.append(
+            (
+                "update_issue",
+                owner,
+                repo,
+                issue_update.issue_number,
+                issue_update.body,
+            )
+        )
+        return {"number": issue_update.issue_number, "title": "patched"}
+
+
+def test_transfer_issues_patches_description_when_description_is_present(
+    tmp_path, monkeypatch
+):
+    input_file = tmp_path / "input.csv"
+    output_file = tmp_path / "output.csv"
+    input_file.write_text(
+        "Title,Description,URL\n"
+        "Issue,Line one\\nLine two,https://github.com/source/repo/issues/1\n",
+        encoding="utf-8",
+    )
+    fake_client = FakeDescriptionClient()
+
+    monkeypatch.setattr(
+        transfer_module,
+        "setup_github_client_for_command",
+        lambda required_scopes, repositories: fake_client,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        ["transfer-issues", str(input_file), str(output_file), "target/repo"],
+    )
+
+    assert result.exit_code == 0
+    assert (
+        "update_issue",
+        "target",
+        "repo",
+        101,
+        "Line one\nLine two",
+    ) in fake_client.calls
+
 
 def test_transfer_issues_command_writes_output_with_destination_url(
     tmp_path, monkeypatch
