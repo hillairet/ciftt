@@ -4,7 +4,7 @@ from typing import Callable, Dict, Literal, Optional
 from urllib.parse import urljoin
 
 import requests
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from ciftt.github.client_utils import _extract_project_fields
 from ciftt.github.data import (
@@ -57,7 +57,6 @@ def _has_next_page(headers: dict) -> bool:
 class GitHubClient(BaseModel, RateLimitMixin):
     api_key: str
     url: str = "https://api.github.com/"
-    model_config = ConfigDict(extra="allow")
 
     def create_issue(self, owner: str, repo: str, issue: NewIssue) -> dict:
         """Create a new issue in the specified repository."""

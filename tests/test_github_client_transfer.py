@@ -5,11 +5,11 @@ def test_get_repository_node_id_returns_id(monkeypatch):
     client = GitHubClient(api_key="token")
     calls = []
 
-    def fake_execute_graphql(query, variables=None):
+    def fake_execute_graphql(self, query, variables=None):
         calls.append((query, variables))
         return {"data": {"repository": {"id": "R_target"}}}
 
-    monkeypatch.setattr(client, "execute_graphql", fake_execute_graphql)
+    monkeypatch.setattr(GitHubClient, "execute_graphql", fake_execute_graphql)
 
     assert client.get_repository_node_id("target-org", "target-repo") == "R_target"
     assert calls[0][1] == {"owner": "target-org", "repo": "target-repo"}
@@ -18,7 +18,7 @@ def test_get_repository_node_id_returns_id(monkeypatch):
 def test_get_transfer_issue_info_returns_parent_number(monkeypatch):
     client = GitHubClient(api_key="token")
 
-    def fake_execute_graphql(query, variables=None):
+    def fake_execute_graphql(self, query, variables=None):
         return {
             "data": {
                 "repository": {
@@ -33,7 +33,7 @@ def test_get_transfer_issue_info_returns_parent_number(monkeypatch):
             }
         }
 
-    monkeypatch.setattr(client, "execute_graphql", fake_execute_graphql)
+    monkeypatch.setattr(GitHubClient, "execute_graphql", fake_execute_graphql)
 
     info = client.get_transfer_issue_info("source", "repo", 42)
 
@@ -46,7 +46,7 @@ def test_get_transfer_issue_info_returns_parent_number(monkeypatch):
 def test_transfer_issue_returns_destination(monkeypatch):
     client = GitHubClient(api_key="token")
 
-    def fake_execute_graphql(query, variables=None):
+    def fake_execute_graphql(self, query, variables=None):
         assert variables == {"issueId": "I_source", "repositoryId": "R_target"}
         return {
             "data": {
@@ -60,7 +60,7 @@ def test_transfer_issue_returns_destination(monkeypatch):
             }
         }
 
-    monkeypatch.setattr(client, "execute_graphql", fake_execute_graphql)
+    monkeypatch.setattr(GitHubClient, "execute_graphql", fake_execute_graphql)
 
     issue = client.transfer_issue("I_source", "R_target")
 
@@ -72,10 +72,10 @@ def test_transfer_issue_returns_destination(monkeypatch):
 def test_mutations_raise_value_error_on_graphql_errors(monkeypatch):
     client = GitHubClient(api_key="token")
 
-    def fake_execute_graphql(query, variables=None):
+    def fake_execute_graphql(self, query, variables=None):
         return {"errors": [{"message": "boom"}]}
 
-    monkeypatch.setattr(client, "execute_graphql", fake_execute_graphql)
+    monkeypatch.setattr(GitHubClient, "execute_graphql", fake_execute_graphql)
 
     try:
         client.close_issue("I_dest")
