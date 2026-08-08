@@ -197,6 +197,54 @@ def test_transfer_issues_command_honors_limit(tmp_path, monkeypatch):
     assert output_file.read_text(encoding="utf-8").count("target/repo") == 1
 
 
+class FakeClosedIssueClient(FakeTransferClient):
+    def get_transfer_issue_info(self, owner, repo, issue_number):
+        from ciftt.github.data import TransferIssueInfo
+
+        self.calls.append(("get_transfer_issue_info", owner, repo, issue_number))
+        return TransferIssueInfo(
+            id="I_closed_source",
+            number=issue_number,
+            url=f"https://github.com/{owner}/{repo}/issues/{issue_number}",
+            state="CLOSED",
+        )
+
+    def comment_issue(self, issue_id, body):
+        self.calls.append(("comment_issue", issue_id, body))
+
+    def reopen_issue(self, issue_id):
+        self.calls.append(("reopen_issue", issue_id))
+
+    def close_issue(self, issue_id):
+        self.calls.append(("close_issue", issue_id))
+
+
+def test_transfer_issues_reopens_and_recloses_closed_issues(tmp_path, monkeypatch):
+    input_file = tmp_path / "input.csv"
+    output_file = tmp_path / "output.csv"
+    input_file.write_text(
+        "Title,URL\nClosed,https://github.com/source/repo/issues/1\n",
+        encoding="utf-8",
+    )
+    fake_client = FakeClosedIssueClient()
+
+    monkeypatch.setattr(
+        transfer_module,
+        "setup_github_client_for_command",
+        lambda required_scopes, repositories: fake_client,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        ["transfer-issues", str(input_file), str(output_file), "target/repo"],
+    )
+
+    assert result.exit_code == 0
+    assert fake_client.calls[2][0] == "comment_issue"
+    assert fake_client.calls[3] == ("reopen_issue", "I_closed_source")
+    assert ("close_issue", "I_dest_101") in fake_client.calls
+
+
 def test_transfer_issues_dry_run_does_not_mutate_existing_output_file(
     tmp_path, monkeypatch
 ):

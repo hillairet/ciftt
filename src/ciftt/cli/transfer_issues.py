@@ -77,6 +77,14 @@ def _strip_output_columns(headers: list[str]) -> list[str]:
     return [header for header in headers if header != "Assignee"]
 
 
+def _closed_issue_transfer_comment(target_repo: str) -> str:
+    return (
+        "Temporarily reopening to transfer this issue to "
+        f"`{target_repo}` because GitHub's API requires open issues for transfers. "
+        "It will be reclosed automatically."
+    )
+
+
 def _repositories_from_rows(
     rows: list[TransferRow], target_repo: str
 ) -> list[tuple[str, str]]:
@@ -140,7 +148,18 @@ def _transfer_rows(
                 row.source_parts.owner, row.source_parts.repo, row.source_parts.number
             )
             row.parent_number = info.parent_number
+            was_closed = info.state == "CLOSED"
+            if was_closed:
+                github_client.comment_issue(
+                    info.id, _closed_issue_transfer_comment(target_repo)
+                )
+                github_client.reopen_issue(info.id)
+
             destination = github_client.transfer_issue(info.id, target_repo_id)
+
+            if was_closed:
+                github_client.close_issue(destination.id)
+
             row.destination_url = destination.url
             row.destination_node_id = destination.id
             transferred += 1
