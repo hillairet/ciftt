@@ -76,25 +76,40 @@ def test_load_transfer_rows_requires_url_column(tmp_path):
         _load_transfer_rows(str(input_file))
 
 
-def test_load_existing_output_urls_maps_input_to_target_output_by_row(tmp_path):
+def test_load_existing_output_urls_maps_source_urls_to_target_output(tmp_path):
     output_file = tmp_path / "transferred.csv"
     output_file.write_text(
-        "Title,URL\n"
-        "Issue one,https://github.com/target/repo/issues/101\n"
-        "Issue two,https://github.com/other/repo/issues/202\n",
+        "Title,SourceURL,URL\n"
+        "Issue one,https://github.com/source/repo/issues/1,https://github.com/target/repo/issues/101\n"
+        "Issue two,https://github.com/source/repo/issues/2,https://github.com/other/repo/issues/202\n",
         encoding="utf-8",
     )
 
     urls = _load_existing_output_urls(str(output_file), "target/repo")
 
-    assert urls == {"1": "https://github.com/target/repo/issues/101"}
+    assert urls == {
+        "https://github.com/source/repo/issues/1": "https://github.com/target/repo/issues/101"
+    }
 
 
-def test_strip_output_columns_removes_assignee_only():
+def test_load_existing_output_urls_ignores_rows_without_source_url(tmp_path):
+    output_file = tmp_path / "transferred.csv"
+    output_file.write_text(
+        "Title,URL\nIssue one,https://github.com/target/repo/issues/101\n",
+        encoding="utf-8",
+    )
+
+    urls = _load_existing_output_urls(str(output_file), "target/repo")
+
+    assert urls == {}
+
+
+def test_strip_output_columns_removes_assignee_and_adds_source_url():
     assert _strip_output_columns(["Title", "Assignee", "URL", "Priority"]) == [
         "Title",
         "URL",
         "Priority",
+        "SourceURL",
     ]
 
 
@@ -217,10 +232,81 @@ def test_transfer_issues_command_writes_output_with_destination_url(
 
     assert result.exit_code == 0
     assert output_file.read_text(encoding="utf-8") == (
-        "Title,Description,URL,Priority\n"
-        "Issue one,Body,https://github.com/target/repo/issues/101,High\n"
+        "Title,Description,URL,Priority,SourceURL\n"
+        "Issue one,Body,https://github.com/target/repo/issues/101,High,https://github.com/source/repo/issues/1\n"
     )
     assert ("transfer_issue", "I_source_1", "R_target") in fake_client.calls
+
+
+class FakeResumeSourceUrlClient(FakeTransferClient):
+    def get_transfer_issue_info(self, owner, repo, issue_number):
+        from ciftt.github.data import TransferIssueInfo
+
+        self.calls.append(("get_transfer_issue_info", owner, repo, issue_number))
+        if owner == "target":
+            return TransferIssueInfo(
+                id=f"I_dest_{issue_number}",
+                number=issue_number,
+                url=f"https://github.com/{owner}/{repo}/issues/{issue_number}",
+                state="OPEN",
+            )
+
+        return TransferIssueInfo(
+            id=f"I_source_{issue_number}",
+            number=issue_number,
+            url=f"https://github.com/{owner}/{repo}/issues/{issue_number}",
+            state="OPEN",
+        )
+
+    def transfer_issue(self, issue_id, repository_id):
+        from ciftt.github.data import TransferredIssue
+
+        self.calls.append(("transfer_issue", issue_id, repository_id))
+        source_number = issue_id.rsplit("_", 1)[1]
+        return TransferredIssue(
+            id=f"I_dest_20{source_number}",
+            number=int(f"20{source_number}"),
+            url=f"https://github.com/target/repo/issues/20{source_number}",
+        )
+
+
+def test_transfer_issues_resumes_by_source_url_not_output_position(
+    tmp_path, monkeypatch
+):
+    input_file = tmp_path / "input.csv"
+    output_file = tmp_path / "output.csv"
+    input_file.write_text(
+        "Title,URL\n"
+        "One,https://github.com/source/repo/issues/1\n"
+        "Two,https://github.com/source/repo/issues/2\n",
+        encoding="utf-8",
+    )
+    output_file.write_text(
+        "Title,URL,SourceURL\n"
+        "Two,https://github.com/target/repo/issues/202,https://github.com/source/repo/issues/2\n",
+        encoding="utf-8",
+    )
+    fake_client = FakeResumeSourceUrlClient()
+
+    monkeypatch.setattr(
+        transfer_module,
+        "setup_github_client_for_command",
+        lambda required_scopes, repositories: fake_client,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        ["transfer-issues", str(input_file), str(output_file), "target/repo"],
+    )
+
+    assert result.exit_code == 0
+    assert ("transfer_issue", "I_source_1", "R_target") in fake_client.calls
+    assert ("transfer_issue", "I_source_2", "R_target") not in fake_client.calls
+    assert output_file.read_text(encoding="utf-8") == (
+        "Title,URL,SourceURL\n"
+        "One,https://github.com/target/repo/issues/201,https://github.com/source/repo/issues/1\n"
+        "Two,https://github.com/target/repo/issues/202,https://github.com/source/repo/issues/2\n"
+    )
 
 
 class FakeSubIssueClient(FakeTransferClient):
@@ -357,6 +443,39 @@ def test_transfer_issues_reopens_and_recloses_closed_issues(tmp_path, monkeypatc
     assert ("close_issue", "I_dest_101") in fake_client.calls
 
 
+class FakeClosedIssueTransferFailureClient(FakeClosedIssueClient):
+    def transfer_issue(self, issue_id, repository_id):
+        self.calls.append(("transfer_issue", issue_id, repository_id))
+        raise ValueError("transfer failed")
+
+
+def test_transfer_issues_recloses_source_when_transfer_fails_after_reopen(
+    tmp_path, monkeypatch
+):
+    input_file = tmp_path / "input.csv"
+    output_file = tmp_path / "output.csv"
+    input_file.write_text(
+        "Title,URL\nClosed,https://github.com/source/repo/issues/1\n",
+        encoding="utf-8",
+    )
+    fake_client = FakeClosedIssueTransferFailureClient()
+
+    monkeypatch.setattr(
+        transfer_module,
+        "setup_github_client_for_command",
+        lambda required_scopes, repositories: fake_client,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        ["transfer-issues", str(input_file), str(output_file), "target/repo"],
+    )
+
+    assert result.exit_code == 1
+    assert fake_client.calls[3] == ("reopen_issue", "I_closed_source")
+    assert ("close_issue", "I_closed_source") in fake_client.calls
+
+
 def test_transfer_issues_dry_run_does_not_mutate_existing_output_file(
     tmp_path, monkeypatch
 ):
@@ -472,7 +591,8 @@ def test_transfer_issues_can_relink_to_parent_from_existing_output(
         encoding="utf-8",
     )
     output_file.write_text(
-        "Title,URL\nParent,https://github.com/target/repo/issues/101\n",
+        "Title,URL,SourceURL\n"
+        "Parent,https://github.com/target/repo/issues/101,https://github.com/source/repo/issues/1\n",
         encoding="utf-8",
     )
     fake_client = FakeResumeRelinkClient()

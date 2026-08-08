@@ -15,6 +15,8 @@ from ciftt.utils import (
     safe_decode,
 )
 
+SOURCE_URL_COLUMN = "SourceURL"
+
 
 @dataclass
 class TransferRow:
@@ -60,22 +62,35 @@ def _load_existing_output_urls(output_file: str, target_repo: str) -> dict[str, 
     mapped_urls = {}
     with open(path, newline="", encoding="utf-8") as file_obj:
         reader = csv.DictReader(file_obj, delimiter=delimiter)
-        for index, row in enumerate(reader, start=1):
+        if SOURCE_URL_COLUMN not in (reader.fieldnames or []):
+            return {}
+
+        for row in reader:
+            source_url = safe_decode(row.get(SOURCE_URL_COLUMN) or "")
+            if not source_url:
+                continue
+
             url = row.get("URL") or ""
             try:
+                source_parts = parse_github_issue_or_pull_url(source_url)
                 parts = parse_github_issue_or_pull_url(url)
             except ValueError:
+                continue
+            if source_parts.kind != "issue":
                 continue
             if parts.kind != "issue":
                 continue
             if parts.owner == target_owner and parts.repo == target_name:
-                mapped_urls[str(index)] = url
+                mapped_urls[source_url] = url
 
     return mapped_urls
 
 
 def _strip_output_columns(headers: list[str]) -> list[str]:
-    return [header for header in headers if header != "Assignee"]
+    output_headers = [header for header in headers if header != "Assignee"]
+    if SOURCE_URL_COLUMN not in output_headers:
+        output_headers.append(SOURCE_URL_COLUMN)
+    return output_headers
 
 
 def _closed_issue_transfer_comment(target_repo: str) -> str:
@@ -131,6 +146,7 @@ def _write_transfer_output(
                 continue
             output_row = dict(transfer_row.row)
             output_row["URL"] = transfer_row.destination_url
+            output_row[SOURCE_URL_COLUMN] = transfer_row.source_url
             writer.writerow(output_row)
 
 
@@ -148,7 +164,7 @@ def _transfer_rows(
     errors = 0
 
     for index, row in enumerate(rows, start=1):
-        existing_url = existing_output_urls.get(str(index))
+        existing_url = existing_output_urls.get(row.source_url)
         if existing_url:
             row.destination_url = existing_url
             try:
@@ -191,6 +207,7 @@ def _transfer_rows(
             skipped += 1
             continue
 
+        reopened_source_id = None
         try:
             info = github_client.get_transfer_issue_info(
                 row.source_parts.owner, row.source_parts.repo, row.source_parts.number
@@ -202,11 +219,13 @@ def _transfer_rows(
                     info.id, _closed_issue_transfer_comment(target_repo)
                 )
                 github_client.reopen_issue(info.id)
+                reopened_source_id = info.id
 
             destination = github_client.transfer_issue(info.id, target_repo_id)
 
             if was_closed:
                 github_client.close_issue(destination.id)
+                reopened_source_id = None
 
             row.destination_url = destination.url
             row.destination_node_id = destination.id
@@ -214,6 +233,14 @@ def _transfer_rows(
             transferred += 1
             typer.echo(f"✅ Transferred {row.source_url} -> {destination.url}")
         except Exception as exc:
+            if reopened_source_id:
+                try:
+                    github_client.close_issue(reopened_source_id)
+                except Exception as close_exc:
+                    typer.echo(
+                        f"⚠️ Could not reclose source issue {row.source_url}: "
+                        f"{close_exc}"
+                    )
             errors += 1
             typer.echo(f"❌ Failed to transfer {row.source_url}: {exc}")
 
