@@ -4,7 +4,7 @@ from typing import Callable, Dict, Literal, Optional
 from urllib.parse import urljoin
 
 import requests
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from ciftt.github.client_utils import _extract_project_fields
 from ciftt.github.data import (
@@ -14,6 +14,8 @@ from ciftt.github.data import (
     ProjectFieldValue,
     ProjectInfo,
     ProjectItemResult,
+    TransferIssueInfo,
+    TransferredIssue,
     UpdatedIssue,
 )
 from ciftt.github.rate_limit import RateLimitMixin
@@ -34,6 +36,13 @@ ADD_PROJECT_ITEM_MUTATION = _load_graphql_query("add_project_item.graphql")
 FIND_PROJECT_ITEM_BY_QUERY_QUERY = _load_graphql_query(
     "find_project_item_by_query.graphql"
 )
+GET_REPOSITORY_ID_QUERY = _load_graphql_query("get_repository_id.graphql")
+GET_TRANSFER_ISSUE_INFO_QUERY = _load_graphql_query("get_transfer_issue_info.graphql")
+TRANSFER_ISSUE_MUTATION = _load_graphql_query("transfer_issue.graphql")
+REOPEN_ISSUE_MUTATION = _load_graphql_query("reopen_issue.graphql")
+CLOSE_ISSUE_MUTATION = _load_graphql_query("close_issue.graphql")
+ADD_ISSUE_COMMENT_MUTATION = _load_graphql_query("add_issue_comment.graphql")
+ADD_SUB_ISSUE_MUTATION = _load_graphql_query("add_sub_issue.graphql")
 
 
 def _is_pull_request(issue: dict) -> bool:
@@ -48,6 +57,7 @@ def _has_next_page(headers: dict) -> bool:
 class GitHubClient(BaseModel, RateLimitMixin):
     api_key: str
     url: str = "https://api.github.com/"
+    model_config = ConfigDict(extra="allow")
 
     def create_issue(self, owner: str, repo: str, issue: NewIssue) -> dict:
         """Create a new issue in the specified repository."""
@@ -195,6 +205,76 @@ class GitHubClient(BaseModel, RateLimitMixin):
         data = {"query": query, "variables": variables}
 
         return self._post_request(endpoint, data)
+
+    def _raise_graphql_errors(self, response: dict, operation: str) -> None:
+        if "errors" not in response:
+            return
+
+        error_msg = ", ".join(error["message"] for error in response["errors"])
+        raise ValueError(f"{operation} failed: {error_msg}")
+
+    def get_repository_node_id(self, owner: str, repo: str) -> str:
+        response = self.execute_graphql(
+            GET_REPOSITORY_ID_QUERY, {"owner": owner, "repo": repo}
+        )
+        self._raise_graphql_errors(response, "Repository lookup")
+
+        repository = response.get("data", {}).get("repository")
+        if not repository:
+            raise ValueError(f"Repository {owner}/{repo} not found or inaccessible")
+
+        return repository["id"]
+
+    def get_transfer_issue_info(
+        self, owner: str, repo: str, issue_number: int
+    ) -> TransferIssueInfo:
+        variables = {"owner": owner, "repo": repo, "issueNumber": issue_number}
+        response = self.execute_graphql(GET_TRANSFER_ISSUE_INFO_QUERY, variables)
+        self._raise_graphql_errors(response, "Issue lookup")
+
+        issue = response.get("data", {}).get("repository", {}).get("issue")
+        if not issue:
+            raise ValueError(f"Issue {owner}/{repo}#{issue_number} not found")
+
+        parent = issue.get("parent") or {}
+        return TransferIssueInfo(
+            id=issue["id"],
+            number=issue["number"],
+            url=issue["url"],
+            state=issue["state"],
+            parent_number=parent.get("number"),
+        )
+
+    def transfer_issue(self, issue_id: str, repository_id: str) -> TransferredIssue:
+        variables = {"issueId": issue_id, "repositoryId": repository_id}
+        response = self.execute_graphql(TRANSFER_ISSUE_MUTATION, variables)
+        self._raise_graphql_errors(response, "Issue transfer")
+
+        issue = response.get("data", {}).get("transferIssue", {}).get("issue")
+        if not issue:
+            raise ValueError("Issue transfer failed: No issue returned")
+
+        return TransferredIssue(
+            id=issue["id"], number=issue["number"], url=issue["url"]
+        )
+
+    def reopen_issue(self, issue_id: str) -> None:
+        response = self.execute_graphql(REOPEN_ISSUE_MUTATION, {"issueId": issue_id})
+        self._raise_graphql_errors(response, "Issue reopen")
+
+    def close_issue(self, issue_id: str) -> None:
+        response = self.execute_graphql(CLOSE_ISSUE_MUTATION, {"issueId": issue_id})
+        self._raise_graphql_errors(response, "Issue close")
+
+    def comment_issue(self, issue_id: str, body: str) -> None:
+        variables = {"subjectId": issue_id, "body": body}
+        response = self.execute_graphql(ADD_ISSUE_COMMENT_MUTATION, variables)
+        self._raise_graphql_errors(response, "Issue comment")
+
+    def add_sub_issue(self, parent_id: str, child_id: str) -> None:
+        variables = {"parentId": parent_id, "childId": child_id}
+        response = self.execute_graphql(ADD_SUB_ISSUE_MUTATION, variables)
+        self._raise_graphql_errors(response, "Sub-issue link")
 
     def get_project_fields_for_issues(
         self,

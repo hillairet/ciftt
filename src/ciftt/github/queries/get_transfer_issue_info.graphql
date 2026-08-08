@@ -1,0 +1,13 @@
+query GetTransferIssueInfo($owner: String!, $repo: String!, $issueNumber: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $issueNumber) {
+      id
+      number
+      url
+      state
+      parent {
+        number
+      }
+    }
+  }
+}

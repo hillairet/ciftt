@@ -1,0 +1,15 @@
+mutation TransferIssue($issueId: ID!, $repositoryId: ID!) {
+  transferIssue(
+    input: {
+      issueId: $issueId
+      repositoryId: $repositoryId
+      createLabelsIfMissing: true
+    }
+  ) {
+    issue {
+      id
+      number
+      url
+    }
+  }
+}
