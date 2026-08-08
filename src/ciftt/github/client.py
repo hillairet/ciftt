@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Callable, Dict, Literal, Optional
+from typing import Any, Callable, Dict, Literal, Optional, cast
 from urllib.parse import urljoin
 
 import requests
@@ -137,7 +137,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
 
     def _get_request(
         self, endpoint: str, params: dict = None, return_headers: bool = False
-    ) -> dict:
+    ) -> Any:
         """Make a GET request to the GitHub API."""
         if params is None:
             params = {}
@@ -155,7 +155,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
 
     def _request(
         self, method: str, endpoint: str, return_headers: bool = False, **kwargs
-    ) -> dict:
+    ) -> Any:
         """Make a request to the GitHub API with rate limiting."""
         headers = {
             "Accept": "application/vnd.github.v3+json",
@@ -432,8 +432,8 @@ class GitHubClient(BaseModel, RateLimitMixin):
             )
             project_info = self.validate_project_exists(project_owner, project_number)
 
-            updated_fields = {}
-            errors = {}
+            updated_fields: dict[str, str] = {}
+            errors: dict[str, str] = {}
             self._update_project_fields(
                 project_fields,
                 available_fields,
@@ -619,7 +619,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
 
         # Check if project exists under user or organization
         project_info = None
-        project_type = None
+        project_type: Optional[Literal["user", "organization"]] = None
 
         if data.get("organization") and data["organization"].get("projectV2"):
             project_info = data["organization"]["projectV2"]
@@ -636,6 +636,8 @@ class GitHubClient(BaseModel, RateLimitMixin):
                 f"  - You have access to the project\n"
                 f"  - Token has 'project' scope"
             )
+
+        project_type = cast(Literal["user", "organization"], project_type)
 
         return ProjectInfo(
             id=project_info["id"],

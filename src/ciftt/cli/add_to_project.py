@@ -1,4 +1,4 @@
-from typing import Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 import typer
 
@@ -39,7 +39,7 @@ def _extract_repositories_from_csv(csv_data) -> Set[Tuple[str, str]]:
     return repositories
 
 
-def _extract_issues_from_csv(csv_data) -> List[Dict[str, any]]:
+def _extract_issues_from_csv(csv_data) -> List[Dict[str, Any]]:
     issues = []
 
     for _, row in csv_data.data.iterrows():
@@ -73,7 +73,7 @@ def _extract_issues_from_csv(csv_data) -> List[Dict[str, any]]:
 
 
 def _perform_dry_run(
-    issues: List[Dict[str, any]], project_owner: str, project_number: str
+    issues: List[Dict[str, Any]], project_owner: str, project_number: str
 ) -> None:
     typer.echo("🧪 DRY RUN MODE: No changes will be made on GitHub")
     typer.echo(

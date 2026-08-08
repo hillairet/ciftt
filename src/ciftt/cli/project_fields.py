@@ -23,8 +23,8 @@ def fetch_github_project_fields(
     Returns:
         Tuple of (project_field_data dict, field_names list)
     """
-    project_field_data = {}
-    field_names = []
+    project_field_data: dict = {}
+    field_names: list[str] = []
 
     if not project_fields:
         return project_field_data, field_names

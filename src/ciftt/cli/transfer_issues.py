@@ -97,9 +97,8 @@ def _patch_destination_description_if_needed(
         return False
 
     destination_parts = parse_github_issue_or_pull_url(row.destination_url)
-    issue_update = UpdatedIssue(
-        URL=row.destination_url,
-        Description=safe_decode(str(description)),
+    issue_update = UpdatedIssue.model_validate(
+        {"URL": row.destination_url, "Description": safe_decode(str(description))}
     )
     github_client.update_issue(
         destination_parts.owner, destination_parts.repo, issue_update

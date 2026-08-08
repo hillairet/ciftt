@@ -4,7 +4,7 @@ tasks:
   test:
     desc: Run tests with coverage
     cmds:
-      - uv run pytest
+      - uv run pytest --cov-fail-under=80
 
   lint:
     desc: Run ruff linter
@@ -24,7 +24,7 @@ tasks:
   typecheck:
     desc: Run mypy type checking
     cmds:
-      - uv run mypy .
+      - uv run mypy src/ciftt
 
   check:
     desc: Run all quality checks (test, lint, format-check, typecheck)

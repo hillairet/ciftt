@@ -1,4 +1,4 @@
-from typing import Set, Tuple
+from typing import Optional, Set, Tuple
 
 import typer
 
@@ -65,7 +65,7 @@ def update_issues(
     csv_file: str = typer.Argument(
         ..., help="Path to the CSV file containing issue data"
     ),
-    project: str = typer.Option(
+    project: Optional[str] = typer.Option(
         None,
         "--project",
         "-p",
@@ -95,8 +95,8 @@ def update_issues(
         typer.echo("📋 No project fields detected - updating issues only")
 
     # Parse and validate project identifier only if provided
-    project_owner = None
-    project_number = None
+    project_owner: Optional[str] = None
+    project_number: Optional[str] = None
     if project:
         project_owner, project_number = _validate_project_identifier(project)
         typer.echo(f"🎯 Target project: {project_owner}/projects/{project_number}")
@@ -120,11 +120,11 @@ def update_issues(
         required_scopes.append("project")
 
     github_client = setup_github_client_for_command(
-        required_scopes=required_scopes, repositories=repositories
+        required_scopes=required_scopes, repositories=list(repositories)
     )
 
     # Validate project and fields only if project is provided
-    if project:
+    if project and project_owner and project_number:
         # Validate that the project exists and is accessible
         try:
             project_info = github_client.validate_project_exists(

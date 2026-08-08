@@ -78,7 +78,7 @@ def safe_decode(x):
     return x
 
 
-def parse_issue_numbers(issues_str: str) -> list:
+def parse_issue_numbers(issues_str: str) -> Optional[list[int]]:
     """
     Parse a string of comma-separated issue numbers and ranges into a list of integers.
 
@@ -94,7 +94,7 @@ def parse_issue_numbers(issues_str: str) -> list:
     if not issues_str:
         return None
 
-    issue_numbers = []
+    issue_numbers: list[int] = []
     parts = issues_str.split(",")
 
     for part in parts:

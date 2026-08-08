@@ -1,7 +1,7 @@
 import logging
 import sys
 from time import sleep, time
-from typing import Callable, Dict
+from typing import Any, Callable, Dict
 
 
 class RateLimitMixin:
@@ -11,7 +11,7 @@ class RateLimitMixin:
 
     def handle_rate_limit(
         self, response, method: str, endpoint: str, request_func: Callable, **kwargs
-    ) -> dict:
+    ) -> Any:
         """Handle rate limit exceeded response by waiting and retrying."""
         # https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api#about-secondary-rate-limits
         if (
@@ -29,7 +29,7 @@ class RateLimitMixin:
 
     def _handle_primary_rate_limit(
         self, response, method: str, endpoint: str, request_func: Callable, **kwargs
-    ) -> dict:
+    ) -> Any:
         """Handle GitHub's primary rate limit by waiting until the reset time."""
         reset_time = int(response.headers.get("x-ratelimit-reset", 0))
         remaining = int(response.headers.get("x-ratelimit-remaining", 0))
@@ -50,10 +50,11 @@ class RateLimitMixin:
 
         # If we can't determine when to retry or something else is wrong
         response.raise_for_status()
+        raise RuntimeError("GitHub API rate limit request failed")
 
     def _handle_secondary_rate_limit(
         self, response, method: str, endpoint: str, request_func: Callable, **kwargs
-    ) -> dict:
+    ) -> Any:
         """Handle GitHub's secondary rate limit with exponential backoff."""
         # Start with a base wait time (e.g., 5 seconds)
         wait_time = 5

@@ -36,7 +36,7 @@ def init_github_client() -> GitHubClient:
     Raises:
         typer.Exit: If GitHub client initialization fails
     """
-    settings = Settings()
+    settings = Settings()  # type: ignore[call-arg]
     try:
         github_client = GitHubClient(api_key=settings.github_token.get_secret_value())
         typer.echo("🐙 Connected to GitHub API")

@@ -1,4 +1,4 @@
-from typing import List
+from typing import Literal, Optional
 
 import typer
 
@@ -24,6 +24,8 @@ def parse_provided_issue_numbers(issues: str) -> list:
 
     try:
         issue_numbers = parse_issue_numbers(issues)
+        if issue_numbers is None:
+            return []
         typer.echo(f"🔢 Exporting specific issues: {issue_numbers}")
         return issue_numbers
     except ValueError as e:
@@ -76,7 +78,7 @@ def fetch_issues_from_github(
                 progress_callback=report_issue_progress,
             )
         else:
-            state = "all" if all_issues else "open"
+            state: Literal["open", "closed", "all"] = "all" if all_issues else "open"
             typer.echo(f"🔍 Fetching {state} issues from repository...")
 
             def report_page_progress(
@@ -111,8 +113,8 @@ def create_issues_in_github(
     github_client: GitHubClient,
     owner: str,
     repo_name: str,
-    issues: List[NewIssue],
-) -> List[dict]:
+    issues: list[NewIssue],
+) -> list[dict]:
     """
     Create new GitHub issues.
 
@@ -142,10 +144,10 @@ def create_issues_in_github(
 
 def update_issues_in_github(
     github_client: GitHubClient,
-    issues: List[UpdatedIssue],
-    target_project_owner: str = None,
-    target_project_number: str = None,
-) -> List[dict]:
+    issues: list[UpdatedIssue],
+    target_project_owner: Optional[str] = None,
+    target_project_number: Optional[str] = None,
+) -> list[dict]:
     """
     Update existing GitHub issues and their project fields.
 
@@ -182,7 +184,8 @@ def update_issues_in_github(
 
             # Update project fields only if target project is specified
             if (
-                target_project_owner
+                issue_number is not None
+                and target_project_owner
                 and target_project_number
                 and hasattr(issue, "project_fields")
                 and issue.project_fields

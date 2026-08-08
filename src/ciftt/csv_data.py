@@ -5,6 +5,7 @@ Provides a standardized interface for working with CSV/TSV issue data.
 
 import csv
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 
@@ -15,10 +16,13 @@ class CSVData:
     Abstracts away the pandas DataFrame implementation details.
     """
 
-    def __init__(self, filepath: str, delimiter: str = None):
+    def __init__(self, filepath: str, delimiter: Optional[str] = None):
         self.filepath = Path(filepath)
-        self.data = None
+        self.data = pd.DataFrame()
         self.delimiter = delimiter
+        self.standard_issue_fields: set[str] = set()
+        self.project_field_columns: list[str] = []
+        self.issue_field_columns: list[str] = []
         self._load_data()
         self._normalize_column_names()
         self._validate_titles()
@@ -71,7 +75,7 @@ class CSVData:
         2. All new issues must have non-empty title values
         """
         new_issues_mask = self._identify_new_issues()
-        has_new_issues = new_issues_mask.any()
+        has_new_issues = bool(new_issues_mask.any())
 
         self._validate_title_column_exists(has_new_issues)
 
@@ -176,7 +180,7 @@ class CSVData:
         Returns:
             Dictionary mapping project field names to their values
         """
-        project_fields = {}
+        project_fields: dict[str, str] = {}
 
         if row_index >= len(self.data):
             return project_fields

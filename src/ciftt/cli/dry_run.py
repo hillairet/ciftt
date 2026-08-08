@@ -1,3 +1,5 @@
+from typing import cast
+
 import typer
 
 from ciftt.csv_data import CSVData
@@ -13,13 +15,13 @@ def perform_dry_run(csv_data: CSVData) -> None:
     """
     typer.echo("🧪 DRY RUN MODE: No changes will be made on GitHub")
     for index, row in csv_data.data.iterrows():
-        issue_number = extract_issue_number(row.get("URL"))
+        issue_number = extract_issue_number(str(row.get("URL") or ""))
         if issue_number:
             title = row.get("Title", "(no title change)")
             typer.echo(f"Would update issue #{issue_number}: {title}")
 
             # Show project fields that would be updated
-            project_fields = csv_data.get_project_field_data(index)
+            project_fields = csv_data.get_project_field_data(cast(int, index))
             if project_fields:
                 field_updates = [
                     f"{name}='{value}'" for name, value in project_fields.items()

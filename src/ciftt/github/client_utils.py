@@ -1,3 +1,5 @@
+from typing import Optional
+
 from ciftt.github.data import (
     DateFieldValue,
     IterationFieldValue,
@@ -45,9 +47,9 @@ def _extract_project_fields(issue_gql_data: dict, field_names: list) -> dict:
 def _format_project_field_value(
     field_type: str,
     value: str,
-    field_options: list = None,
-    field_iterations: list = None,
-) -> ProjectFieldValue:
+    field_options: Optional[list] = None,
+    field_iterations: Optional[list] = None,
+) -> Optional[ProjectFieldValue]:
     """
     Format a field value for GitHub GraphQL API based on field type.
 
