@@ -152,7 +152,8 @@ def _transfer_rows(
         existing_url = existing_output_urls.get(str(index))
         if existing_url:
             row.destination_url = existing_url
-            _patch_destination_description_if_needed(github_client, row)
+            if not dry_run:
+                _patch_destination_description_if_needed(github_client, row)
             typer.echo(f"⏭️ Row {index}: already transferred -> {existing_url}")
             skipped += 1
             continue

@@ -337,3 +337,41 @@ def test_transfer_issues_dry_run_does_not_mutate_existing_output_file(
     assert result.exit_code == 0
     assert output_file.read_text(encoding="utf-8") == existing_output
     assert ("transfer_issue", "I_source_1", "R_target") not in fake_client.calls
+
+
+def test_transfer_issues_dry_run_does_not_patch_resumed_description(
+    tmp_path, monkeypatch
+):
+    input_file = tmp_path / "input.csv"
+    output_file = tmp_path / "output.csv"
+    input_file.write_text(
+        "Title,Description,URL\n"
+        "One,Updated body,https://github.com/source/repo/issues/1\n",
+        encoding="utf-8",
+    )
+    existing_output = (
+        "Title,Description,URL\nOne,Old body,https://github.com/target/repo/issues/99\n"
+    )
+    output_file.write_text(existing_output, encoding="utf-8")
+    fake_client = FakeTransferClient()
+
+    monkeypatch.setattr(
+        transfer_module,
+        "setup_github_client_for_command",
+        lambda required_scopes, repositories: fake_client,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "transfer-issues",
+            str(input_file),
+            str(output_file),
+            "target/repo",
+            "--dry-run",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert output_file.read_text(encoding="utf-8") == existing_output
+    assert not any(call[0] == "update_issue" for call in fake_client.calls)
