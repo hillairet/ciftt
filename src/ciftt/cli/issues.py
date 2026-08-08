@@ -56,12 +56,44 @@ def fetch_issues_from_github(
     """
     try:
         if issue_numbers:
+            typer.echo(f"🔍 Fetching {len(issue_numbers)} specific issues...")
+
+            def report_issue_progress(
+                completed: int, total: int, issue_number: int
+            ) -> None:
+                if completed != 1 and completed % 25 != 0 and completed != total:
+                    return
+
+                typer.echo(
+                    f"⏳ Fetched {completed}/{total} requested issues "
+                    f"(latest: #{issue_number})"
+                )
+
             issues_data = github_client.get_issues_by_numbers(
-                owner, repo_name, issue_numbers
+                owner,
+                repo_name,
+                issue_numbers,
+                progress_callback=report_issue_progress,
             )
         else:
             state = "all" if all_issues else "open"
-            issues_data = github_client.get_all_issues(owner, repo_name, state=state)
+            typer.echo(f"🔍 Fetching {state} issues from repository...")
+
+            def report_page_progress(
+                page: int, total_issues: int, page_issues: int
+            ) -> None:
+                page_label = "page" if page == 1 else "pages"
+                typer.echo(
+                    f"⏳ Fetched {total_issues} issues across {page} {page_label} "
+                    f"(latest page: {page_issues})"
+                )
+
+            issues_data = github_client.get_all_issues(
+                owner,
+                repo_name,
+                state=state,
+                progress_callback=report_page_progress,
+            )
 
         typer.echo(f"📋 Found {len(issues_data)} issues")
     except Exception as e:

@@ -90,6 +90,34 @@ def test_get_all_issues_excludes_pull_requests(monkeypatch):
     assert [issue["number"] for issue in issues] == [1]
 
 
+def test_get_all_issues_reports_progress_after_each_page(monkeypatch):
+    client = GitHubClient(api_key="x")
+    progress_updates = []
+
+    def fake_get_request(
+        endpoint: str, params: Optional[dict] = None, return_headers: bool = False
+    ) -> tuple:
+        page = (params or {}).get("page")
+        if page == 1:
+            return [make_issue(1), make_pull_request(2)], {
+                "Link": '<https://api.github.com/repositories/1/issues?page=2>; rel="next"'
+            }
+        if page == 2:
+            return [make_issue(3)], {}
+        return [], {}
+
+    def record_progress(page: int, total_issues: int, page_issues: int) -> None:
+        progress_updates.append((page, total_issues, page_issues))
+
+    monkeypatch.setattr(client, "_get_request", fake_get_request)
+
+    client.get_all_issues(
+        "owner", "repo", state="all", progress_callback=record_progress
+    )
+
+    assert progress_updates == [(1, 1, 1), (2, 2, 1)]
+
+
 def test_get_issues_by_numbers_excludes_pull_requests(monkeypatch):
     client = GitHubClient(api_key="x")
 
@@ -105,3 +133,69 @@ def test_get_issues_by_numbers_excludes_pull_requests(monkeypatch):
     issues = client.get_issues_by_numbers("owner", "repo", [1, 2])
 
     assert [issue["number"] for issue in issues] == [1]
+
+
+def test_get_issues_by_numbers_reports_progress(monkeypatch):
+    client = GitHubClient(api_key="x")
+    progress_updates = []
+
+    def fake_get_request(endpoint: str, params: Optional[dict] = None) -> dict:
+        issue_number = int(endpoint.rsplit("/", 1)[1])
+        return make_issue(issue_number)
+
+    def record_progress(completed: int, total: int, issue_number: int) -> None:
+        progress_updates.append((completed, total, issue_number))
+
+    monkeypatch.setattr(client, "_get_request", fake_get_request)
+
+    client.get_issues_by_numbers(
+        "owner", "repo", [1, 2, 3], progress_callback=record_progress
+    )
+
+    assert progress_updates == [(1, 3, 1), (2, 3, 2), (3, 3, 3)]
+
+
+def test_get_project_fields_for_issues_reports_progress(monkeypatch):
+    client = GitHubClient(api_key="x")
+    progress_updates = []
+
+    def fake_execute_graphql(
+        _self: GitHubClient, _query: str, variables: Optional[dict] = None
+    ) -> dict:
+        return {
+            "data": {
+                "repository": {
+                    "issue": {
+                        "projectItems": {
+                            "nodes": [
+                                {
+                                    "fieldValues": {
+                                        "nodes": [
+                                            {
+                                                "field": {"name": "Status"},
+                                                "name": "Todo",
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+
+    def record_progress(completed: int, total: int, issue_number: int) -> None:
+        progress_updates.append((completed, total, issue_number))
+
+    monkeypatch.setattr(GitHubClient, "execute_graphql", fake_execute_graphql)
+
+    client.get_project_fields_for_issues(
+        "owner",
+        "repo",
+        [1, 2, 3],
+        ["Status"],
+        progress_callback=record_progress,
+    )
+
+    assert progress_updates == [(1, 3, 1), (2, 3, 2), (3, 3, 3)]

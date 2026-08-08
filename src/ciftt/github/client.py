@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Dict, Literal, Optional
+from typing import Callable, Dict, Literal, Optional
 from urllib.parse import urljoin
 
 import requests
@@ -69,7 +69,11 @@ class GitHubClient(BaseModel, RateLimitMixin):
         return self._patch_request(endpoint, data)
 
     def get_all_issues(
-        self, owner: str, repo: str, state: Literal["open", "closed", "all"] = "open"
+        self,
+        owner: str,
+        repo: str,
+        state: Literal["open", "closed", "all"] = "open",
+        progress_callback: Optional[Callable[[int, int, int], None]] = None,
     ) -> list:
         """Fetch all issues from a GitHub repository."""
         endpoint = f"repos/{owner}/{repo}/issues"
@@ -85,7 +89,12 @@ class GitHubClient(BaseModel, RateLimitMixin):
             if not issues:
                 break
 
-            all_issues.extend(issue for issue in issues if not _is_pull_request(issue))
+            page_issues = [issue for issue in issues if not _is_pull_request(issue)]
+            all_issues.extend(page_issues)
+
+            if progress_callback:
+                progress_callback(page, len(all_issues), len(page_issues))
+
             page += 1
 
             if not _has_next_page(headers):
@@ -93,10 +102,17 @@ class GitHubClient(BaseModel, RateLimitMixin):
 
         return all_issues
 
-    def get_issues_by_numbers(self, owner: str, repo: str, issue_numbers: list) -> list:
+    def get_issues_by_numbers(
+        self,
+        owner: str,
+        repo: str,
+        issue_numbers: list,
+        progress_callback: Optional[Callable[[int, int, int], None]] = None,
+    ) -> list:
         """Fetch specific issues from a GitHub repository by their numbers."""
         all_issues = []
-        for issue_num in issue_numbers:
+        total_issues = len(issue_numbers)
+        for completed, issue_num in enumerate(issue_numbers, start=1):
             try:
                 endpoint = f"repos/{owner}/{repo}/issues/{issue_num}"
                 issue = self._get_request(endpoint)
@@ -104,6 +120,9 @@ class GitHubClient(BaseModel, RateLimitMixin):
                     all_issues.append(issue)
             except Exception as e:
                 logging.warning(f"Failed to fetch issue #{issue_num}: {e}")
+            finally:
+                if progress_callback:
+                    progress_callback(completed, total_issues, issue_num)
 
         return all_issues
 
@@ -178,7 +197,12 @@ class GitHubClient(BaseModel, RateLimitMixin):
         return self._post_request(endpoint, data)
 
     def get_project_fields_for_issues(
-        self, owner: str, repo: str, issue_numbers: list, field_names: list
+        self,
+        owner: str,
+        repo: str,
+        issue_numbers: list,
+        field_names: list,
+        progress_callback: Optional[Callable[[int, int, int], None]] = None,
     ) -> dict:
         """
         Fetch project fields for specific issues using GraphQL.
@@ -194,8 +218,10 @@ class GitHubClient(BaseModel, RateLimitMixin):
         """
         result = {}
 
+        total_issues = len(issue_numbers)
+
         # Fetch project fields for each issue individually
-        for issue_number in issue_numbers:
+        for completed, issue_number in enumerate(issue_numbers, start=1):
             variables = {"owner": owner, "repo": repo, "issueNumber": issue_number}
 
             try:
@@ -216,6 +242,9 @@ class GitHubClient(BaseModel, RateLimitMixin):
                     f"Failed to fetch project fields for issue #{issue_number}: {e}"
                 )
                 continue
+            finally:
+                if progress_callback:
+                    progress_callback(completed, total_issues, issue_number)
 
         return result
 

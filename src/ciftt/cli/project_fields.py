@@ -30,14 +30,28 @@ def fetch_github_project_fields(
         return project_field_data, field_names
 
     field_names = [field.strip() for field in project_fields.split(",")]
-    typer.echo(f"🔍 Fetching project fields: {', '.join(field_names)}")
-
-    # Get issue numbers
     issue_numbers = [issue["number"] for issue in issues_data]
+    typer.echo(
+        f"🔍 Fetching project fields for {len(issue_numbers)} issues: "
+        f"{', '.join(field_names)}"
+    )
+
+    def report_progress(completed: int, total: int, issue_number: int) -> None:
+        if completed != 1 and completed % 25 != 0 and completed != total:
+            return
+
+        typer.echo(
+            f"⏳ Fetched project fields for {completed}/{total} issues "
+            f"(latest: #{issue_number})"
+        )
 
     try:
         project_field_data = github_client.get_project_fields_for_issues(
-            owner, repo_name, issue_numbers, field_names
+            owner,
+            repo_name,
+            issue_numbers,
+            field_names,
+            progress_callback=report_progress,
         )
         typer.echo(
             f"✅ Successfully fetched project fields for {len(project_field_data)} issues"
