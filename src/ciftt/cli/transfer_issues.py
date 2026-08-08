@@ -1,7 +1,7 @@
 import csv
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Optional
 
 import typer
 
@@ -177,8 +177,9 @@ def transfer_issues(
         handle_cli_error("Transfer setup", exc)
 
     repositories = _repositories_from_rows(rows, target_repo)
-    setup_client = cast(Any, transfer_issues).setup_github_client_for_command
-    github_client = setup_client(required_scopes=["repo"], repositories=repositories)
+    github_client = setup_github_client_for_command(
+        required_scopes=["repo"], repositories=repositories
+    )
 
     try:
         target_repo_id = github_client.get_repository_node_id(target_owner, target_name)
@@ -191,7 +192,8 @@ def transfer_issues(
             existing_output_urls,
             dry_run,
         )
-        _write_transfer_output(output_file, headers, rows, delimiter)
+        if not dry_run:
+            _write_transfer_output(output_file, headers, rows, delimiter)
     except Exception as exc:
         handle_cli_error("Transfer", exc)
 
@@ -200,8 +202,3 @@ def transfer_issues(
     )
     if errors:
         raise typer.Exit(code=1)
-
-
-cast(
-    Any, transfer_issues
-).setup_github_client_for_command = setup_github_client_for_command

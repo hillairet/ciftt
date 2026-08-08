@@ -1,14 +1,17 @@
+import importlib
+
 import pytest
 from typer.testing import CliRunner
 
 from ciftt import app
-from ciftt.cli import transfer_issues as transfer_module
 from ciftt.cli.transfer_issues import (
     _load_existing_output_urls,
     _load_transfer_rows,
     _strip_output_columns,
 )
 from ciftt.utils import is_github_pull_request_url, parse_github_issue_or_pull_url
+
+transfer_module = importlib.import_module("ciftt.cli.transfer_issues")
 
 
 def test_parse_github_issue_url_returns_parts():
@@ -192,3 +195,38 @@ def test_transfer_issues_command_honors_limit(tmp_path, monkeypatch):
 
     assert result.exit_code == 0
     assert output_file.read_text(encoding="utf-8").count("target/repo") == 1
+
+
+def test_transfer_issues_dry_run_does_not_mutate_existing_output_file(
+    tmp_path, monkeypatch
+):
+    input_file = tmp_path / "input.csv"
+    output_file = tmp_path / "output.csv"
+    input_file.write_text(
+        "Title,URL\nOne,https://github.com/source/repo/issues/1\n",
+        encoding="utf-8",
+    )
+    existing_output = "Title,URL\nExisting,https://github.com/target/repo/issues/99\n"
+    output_file.write_text(existing_output, encoding="utf-8")
+    fake_client = FakeTransferClient()
+
+    monkeypatch.setattr(
+        transfer_module,
+        "setup_github_client_for_command",
+        lambda required_scopes, repositories: fake_client,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "transfer-issues",
+            str(input_file),
+            str(output_file),
+            "target/repo",
+            "--dry-run",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert output_file.read_text(encoding="utf-8") == existing_output
+    assert ("transfer_issue", "I_source_1", "R_target") not in fake_client.calls
