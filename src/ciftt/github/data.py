@@ -144,6 +144,20 @@ class ProjectInfo(BaseModel):
     type: Literal["user", "organization"]
 
 
+class TransferIssueInfo(BaseModel):
+    id: str
+    number: int
+    url: str
+    state: Literal["OPEN", "CLOSED"]
+    parent_number: Optional[int] = None
+
+
+class TransferredIssue(BaseModel):
+    id: str
+    number: int
+    url: str
+
+
 class ProjectFieldUpdateResult(BaseModel):
     """
     Represents the result of updating project fields for an issue.

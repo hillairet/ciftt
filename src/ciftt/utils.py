@@ -4,7 +4,16 @@ Utility functions for CIFTT.
 
 import codecs
 import re
-from typing import Optional, Tuple
+from dataclasses import dataclass
+from typing import Literal, Optional, Tuple
+
+
+@dataclass(frozen=True)
+class IssueUrlParts:
+    owner: str
+    repo: str
+    number: int
+    kind: Literal["issue", "pull"]
 
 
 def parse_repo(repo: str) -> Tuple[str, str]:
@@ -26,6 +35,28 @@ def extract_issue_number(url: str) -> Optional[int]:
     if match:
         return int(match.group(1))
     return None
+
+
+def parse_github_issue_or_pull_url(url: str) -> IssueUrlParts:
+    pattern = r"^https://github\.com/([^/]+)/([^/]+)/(issues|pull)/(\d+)$"
+    match = re.match(pattern, url or "")
+    if not match:
+        raise ValueError(f"Invalid GitHub issue or pull request URL: {url}")
+
+    kind: Literal["issue", "pull"] = "issue" if match.group(3) == "issues" else "pull"
+    return IssueUrlParts(
+        owner=match.group(1),
+        repo=match.group(2),
+        number=int(match.group(4)),
+        kind=kind,
+    )
+
+
+def is_github_pull_request_url(url: str) -> bool:
+    try:
+        return parse_github_issue_or_pull_url(url).kind == "pull"
+    except ValueError:
+        return False
 
 
 def safe_decode(x):
