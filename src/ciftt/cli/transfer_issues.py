@@ -152,6 +152,31 @@ def _transfer_rows(
         existing_url = existing_output_urls.get(str(index))
         if existing_url:
             row.destination_url = existing_url
+            try:
+                destination_parts = parse_github_issue_or_pull_url(existing_url)
+                destination_info = github_client.get_transfer_issue_info(
+                    destination_parts.owner,
+                    destination_parts.repo,
+                    destination_parts.number,
+                )
+                row.destination_node_id = destination_info.id
+            except Exception as exc:
+                typer.echo(
+                    f"⚠️ Could not resolve destination node for {existing_url}: {exc}"
+                )
+
+            try:
+                source_info = github_client.get_transfer_issue_info(
+                    row.source_parts.owner,
+                    row.source_parts.repo,
+                    row.source_parts.number,
+                )
+                row.parent_number = source_info.parent_number
+            except Exception as exc:
+                typer.echo(
+                    f"⚠️ Could not resolve source parent for {row.source_url}: {exc}"
+                )
+
             if not dry_run:
                 _patch_destination_description_if_needed(github_client, row)
             typer.echo(f"⏭️ Row {index}: already transferred -> {existing_url}")

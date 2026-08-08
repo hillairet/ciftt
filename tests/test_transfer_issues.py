@@ -428,3 +428,65 @@ def test_transfer_issues_dry_run_does_not_patch_resumed_description(
     assert result.exit_code == 0
     assert output_file.read_text(encoding="utf-8") == existing_output
     assert not any(call[0] == "update_issue" for call in fake_client.calls)
+
+
+class FakeResumeRelinkClient(FakeSubIssueClient):
+    def get_transfer_issue_info(self, owner, repo, issue_number):
+        from ciftt.github.data import TransferIssueInfo
+
+        if owner == "target":
+            return TransferIssueInfo(
+                id="I_existing_parent",
+                number=101,
+                url="https://github.com/target/repo/issues/101",
+                state="OPEN",
+            )
+
+        return TransferIssueInfo(
+            id=f"I_source_{issue_number}",
+            number=issue_number,
+            url=f"https://github.com/{owner}/{repo}/issues/{issue_number}",
+            state="OPEN",
+            parent_number=1 if issue_number == 2 else None,
+        )
+
+    def transfer_issue(self, issue_id, repository_id):
+        from ciftt.github.data import TransferredIssue
+
+        return TransferredIssue(
+            id="I_new_child",
+            number=102,
+            url="https://github.com/target/repo/issues/102",
+        )
+
+
+def test_transfer_issues_can_relink_to_parent_from_existing_output(
+    tmp_path, monkeypatch
+):
+    input_file = tmp_path / "input.csv"
+    output_file = tmp_path / "output.csv"
+    input_file.write_text(
+        "Title,URL\n"
+        "Parent,https://github.com/source/repo/issues/1\n"
+        "Child,https://github.com/source/repo/issues/2\n",
+        encoding="utf-8",
+    )
+    output_file.write_text(
+        "Title,URL\nParent,https://github.com/target/repo/issues/101\n",
+        encoding="utf-8",
+    )
+    fake_client = FakeResumeRelinkClient()
+
+    monkeypatch.setattr(
+        transfer_module,
+        "setup_github_client_for_command",
+        lambda required_scopes, repositories: fake_client,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        ["transfer-issues", str(input_file), str(output_file), "target/repo"],
+    )
+
+    assert result.exit_code == 0
+    assert ("add_sub_issue", "I_existing_parent", "I_new_child") in fake_client.calls
