@@ -309,6 +309,57 @@ def test_transfer_issues_resumes_by_source_url_not_output_position(
     )
 
 
+class FakeResumeSkipsSourceLookupClient(FakeTransferClient):
+    def get_transfer_issue_info(self, owner, repo, issue_number):
+        from ciftt.github.data import TransferIssueInfo
+
+        self.calls.append(("get_transfer_issue_info", owner, repo, issue_number))
+        if owner == "source":
+            raise ValueError("source issue no longer resolvable")
+
+        return TransferIssueInfo(
+            id=f"I_dest_{issue_number}",
+            number=issue_number,
+            url=f"https://github.com/{owner}/{repo}/issues/{issue_number}",
+            state="OPEN",
+        )
+
+
+def test_transfer_issues_does_not_lookup_source_for_resumed_rows(tmp_path, monkeypatch):
+    input_file = tmp_path / "input.csv"
+    output_file = tmp_path / "output.csv"
+    input_file.write_text(
+        "Title,URL\nOne,https://github.com/source/repo/issues/1\n",
+        encoding="utf-8",
+    )
+    output_file.write_text(
+        "Title,URL,SourceURL\n"
+        "One,https://github.com/target/repo/issues/201,https://github.com/source/repo/issues/1\n",
+        encoding="utf-8",
+    )
+    fake_client = FakeResumeSkipsSourceLookupClient()
+
+    monkeypatch.setattr(
+        transfer_module,
+        "setup_github_client_for_command",
+        lambda required_scopes, repositories: fake_client,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        ["transfer-issues", str(input_file), str(output_file), "target/repo"],
+    )
+
+    assert result.exit_code == 0
+    assert "Could not resolve source parent" not in result.output
+    assert (
+        "get_transfer_issue_info",
+        "source",
+        "repo",
+        1,
+    ) not in fake_client.calls
+
+
 class FakeSubIssueClient(FakeTransferClient):
     def get_transfer_issue_info(self, owner, repo, issue_number):
         from ciftt.github.data import TransferIssueInfo
