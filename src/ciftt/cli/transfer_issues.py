@@ -101,6 +101,41 @@ def _closed_issue_transfer_comment(target_repo: str) -> str:
     )
 
 
+VALID_TRANSFER_CLOSE_REASONS = {
+    "completed": "COMPLETED",
+    "not_planned": "NOT_PLANNED",
+    "duplicate": "DUPLICATE",
+}
+
+
+def _normalize_transfer_close_reason(reason: Optional[str]) -> Optional[str]:
+    if reason is None:
+        return None
+
+    normalized = reason.strip().lower().replace("-", "_")
+    if not normalized:
+        return None
+
+    if normalized not in VALID_TRANSFER_CLOSE_REASONS:
+        valid_values = ", ".join(sorted(VALID_TRANSFER_CLOSE_REASONS))
+        raise ValueError(
+            "Invalid StateReason for transfer reclosing: "
+            f"{reason}. Valid values: {valid_values}"
+        )
+
+    return VALID_TRANSFER_CLOSE_REASONS[normalized]
+
+
+def _transfer_close_reason(
+    row: TransferRow, source_reason: Optional[str]
+) -> Optional[str]:
+    csv_reason = row.row.get("StateReason")
+    if csv_reason is not None and str(csv_reason).strip():
+        return _normalize_transfer_close_reason(str(csv_reason))
+
+    return _normalize_transfer_close_reason(source_reason)
+
+
 def _patch_destination_description_if_needed(
     github_client: GitHubClient, row: TransferRow
 ) -> bool:
@@ -181,6 +216,7 @@ def _transfer_rows(
             continue
 
         reopened_source_id = None
+        close_reason = None
         try:
             info = github_client.get_transfer_issue_info(
                 row.source_parts.owner, row.source_parts.repo, row.source_parts.number
@@ -188,6 +224,7 @@ def _transfer_rows(
             row.parent_number = info.parent_number
             was_closed = info.state == "CLOSED"
             if was_closed:
+                close_reason = _transfer_close_reason(row, info.state_reason)
                 github_client.comment_issue(
                     info.id, _closed_issue_transfer_comment(target_repo)
                 )
@@ -197,7 +234,7 @@ def _transfer_rows(
             destination = github_client.transfer_issue(info.id, target_repo_id)
 
             if was_closed:
-                github_client.close_issue(destination.id)
+                github_client.close_issue(destination.id, close_reason)
                 reopened_source_id = None
 
             row.destination_url = destination.url
@@ -208,7 +245,7 @@ def _transfer_rows(
         except Exception as exc:
             if reopened_source_id:
                 try:
-                    github_client.close_issue(reopened_source_id)
+                    github_client.close_issue(reopened_source_id, close_reason)
                 except Exception as close_exc:
                     typer.echo(
                         f"⚠️ Could not reclose source issue {row.source_url}: "

@@ -103,6 +103,7 @@ def transform_issues_to_dataframe(
             "Description": description,
             "Labels": ",".join([label["name"] for label in issue["labels"]]),
             "Assignee": issue["assignee"]["login"] if issue["assignee"] else "",
+            "StateReason": issue.get("state_reason") or "",
             "URL": issue["html_url"],
         }
 

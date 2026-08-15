@@ -5,6 +5,7 @@ query GetTransferIssueInfo($owner: String!, $repo: String!, $issueNumber: Int!) 
       number
       url
       state
+      stateReason
       parent {
         number
       }

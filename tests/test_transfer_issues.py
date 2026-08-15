@@ -456,6 +456,7 @@ class FakeClosedIssueClient(FakeTransferClient):
             number=issue_number,
             url=f"https://github.com/{owner}/{repo}/issues/{issue_number}",
             state="CLOSED",
+            state_reason="NOT_PLANNED",
         )
 
     def comment_issue(self, issue_id, body):
@@ -464,8 +465,8 @@ class FakeClosedIssueClient(FakeTransferClient):
     def reopen_issue(self, issue_id):
         self.calls.append(("reopen_issue", issue_id))
 
-    def close_issue(self, issue_id):
-        self.calls.append(("close_issue", issue_id))
+    def close_issue(self, issue_id, state_reason=None):
+        self.calls.append(("close_issue", issue_id, state_reason))
 
 
 def test_transfer_issues_reopens_and_recloses_closed_issues(tmp_path, monkeypatch):
@@ -491,7 +492,60 @@ def test_transfer_issues_reopens_and_recloses_closed_issues(tmp_path, monkeypatc
     assert result.exit_code == 0
     assert fake_client.calls[2][0] == "comment_issue"
     assert fake_client.calls[3] == ("reopen_issue", "I_closed_source")
-    assert ("close_issue", "I_dest_101") in fake_client.calls
+    assert ("close_issue", "I_dest_101", "NOT_PLANNED") in fake_client.calls
+
+
+def test_transfer_issues_csv_state_reason_overrides_source_reason(
+    tmp_path, monkeypatch
+):
+    input_file = tmp_path / "input.csv"
+    output_file = tmp_path / "output.csv"
+    input_file.write_text(
+        "Title,StateReason,URL\n"
+        "Closed,duplicate,https://github.com/source/repo/issues/1\n",
+        encoding="utf-8",
+    )
+    fake_client = FakeClosedIssueClient()
+
+    monkeypatch.setattr(
+        transfer_module,
+        "setup_github_client_for_command",
+        lambda required_scopes, repositories: fake_client,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        ["transfer-issues", str(input_file), str(output_file), "target/repo"],
+    )
+
+    assert result.exit_code == 0
+    assert ("close_issue", "I_dest_101", "DUPLICATE") in fake_client.calls
+
+
+def test_transfer_issues_rejects_invalid_csv_state_reason(tmp_path, monkeypatch):
+    input_file = tmp_path / "input.csv"
+    output_file = tmp_path / "output.csv"
+    input_file.write_text(
+        "Title,StateReason,URL\n"
+        "Closed,reopened,https://github.com/source/repo/issues/1\n",
+        encoding="utf-8",
+    )
+    fake_client = FakeClosedIssueClient()
+
+    monkeypatch.setattr(
+        transfer_module,
+        "setup_github_client_for_command",
+        lambda required_scopes, repositories: fake_client,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        ["transfer-issues", str(input_file), str(output_file), "target/repo"],
+    )
+
+    assert result.exit_code == 1
+    assert "Invalid StateReason for transfer reclosing" in result.output
+    assert ("transfer_issue", "I_closed_source", "R_target") not in fake_client.calls
 
 
 class FakeClosedIssueTransferFailureClient(FakeClosedIssueClient):
@@ -524,7 +578,7 @@ def test_transfer_issues_recloses_source_when_transfer_fails_after_reopen(
 
     assert result.exit_code == 1
     assert fake_client.calls[3] == ("reopen_issue", "I_closed_source")
-    assert ("close_issue", "I_closed_source") in fake_client.calls
+    assert ("close_issue", "I_closed_source", "NOT_PLANNED") in fake_client.calls
 
 
 def test_transfer_issues_dry_run_does_not_mutate_existing_output_file(

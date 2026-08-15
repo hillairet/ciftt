@@ -41,6 +41,9 @@ GET_TRANSFER_ISSUE_INFO_QUERY = _load_graphql_query("get_transfer_issue_info.gra
 TRANSFER_ISSUE_MUTATION = _load_graphql_query("transfer_issue.graphql")
 REOPEN_ISSUE_MUTATION = _load_graphql_query("reopen_issue.graphql")
 CLOSE_ISSUE_MUTATION = _load_graphql_query("close_issue.graphql")
+CLOSE_ISSUE_WITH_REASON_MUTATION = _load_graphql_query(
+    "close_issue_with_reason.graphql"
+)
 ADD_ISSUE_COMMENT_MUTATION = _load_graphql_query("add_issue_comment.graphql")
 ADD_SUB_ISSUE_MUTATION = _load_graphql_query("add_sub_issue.graphql")
 
@@ -241,6 +244,7 @@ class GitHubClient(BaseModel, RateLimitMixin):
             number=issue["number"],
             url=issue["url"],
             state=issue["state"],
+            state_reason=issue.get("stateReason"),
             parent_number=parent.get("number"),
         )
 
@@ -261,8 +265,15 @@ class GitHubClient(BaseModel, RateLimitMixin):
         response = self.execute_graphql(REOPEN_ISSUE_MUTATION, {"issueId": issue_id})
         self._raise_graphql_errors(response, "Issue reopen")
 
-    def close_issue(self, issue_id: str) -> None:
-        response = self.execute_graphql(CLOSE_ISSUE_MUTATION, {"issueId": issue_id})
+    def close_issue(self, issue_id: str, state_reason: Optional[str] = None) -> None:
+        variables = {"issueId": issue_id}
+        if state_reason:
+            variables["stateReason"] = state_reason
+            response = self.execute_graphql(CLOSE_ISSUE_WITH_REASON_MUTATION, variables)
+            self._raise_graphql_errors(response, "Issue close")
+            return
+
+        response = self.execute_graphql(CLOSE_ISSUE_MUTATION, variables)
         self._raise_graphql_errors(response, "Issue close")
 
     def comment_issue(self, issue_id: str, body: str) -> None:

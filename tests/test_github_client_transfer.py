@@ -27,6 +27,7 @@ def test_get_transfer_issue_info_returns_parent_number(monkeypatch):
                         "number": 42,
                         "url": "https://github.com/source/repo/issues/42",
                         "state": "CLOSED",
+                        "stateReason": "NOT_PLANNED",
                         "parent": {"number": 12},
                     }
                 }
@@ -40,7 +41,40 @@ def test_get_transfer_issue_info_returns_parent_number(monkeypatch):
     assert info.id == "I_source"
     assert info.number == 42
     assert info.state == "CLOSED"
+    assert info.state_reason == "NOT_PLANNED"
     assert info.parent_number == 12
+
+
+def test_close_issue_sends_state_reason_when_provided(monkeypatch):
+    client = GitHubClient(api_key="token")
+    calls = []
+
+    def fake_execute_graphql(self, query, variables=None):
+        calls.append((query, variables))
+        return {"data": {"closeIssue": {"issue": {"id": "I_dest"}}}}
+
+    monkeypatch.setattr(GitHubClient, "execute_graphql", fake_execute_graphql)
+
+    client.close_issue("I_dest", "NOT_PLANNED")
+
+    assert calls[0][1] == {"issueId": "I_dest", "stateReason": "NOT_PLANNED"}
+    assert "stateReason" in calls[0][0]
+
+
+def test_close_issue_omits_state_reason_when_not_provided(monkeypatch):
+    client = GitHubClient(api_key="token")
+    calls = []
+
+    def fake_execute_graphql(self, query, variables=None):
+        calls.append((query, variables))
+        return {"data": {"closeIssue": {"issue": {"id": "I_dest"}}}}
+
+    monkeypatch.setattr(GitHubClient, "execute_graphql", fake_execute_graphql)
+
+    client.close_issue("I_dest")
+
+    assert calls[0][1] == {"issueId": "I_dest"}
+    assert "stateReason" not in calls[0][0]
 
 
 def test_transfer_issue_returns_destination(monkeypatch):

@@ -4,7 +4,11 @@ from pathlib import Path
 import pytest
 
 from ciftt.csv_data import CSVData
-from ciftt.transform import transform_csv_to_new_issues, transform_csv_to_updated_issues
+from ciftt.transform import (
+    transform_csv_to_new_issues,
+    transform_csv_to_updated_issues,
+    transform_issues_to_dataframe,
+)
 
 
 class TestTransformNewIssues:
@@ -175,3 +179,22 @@ class TestTransformUpdatedIssues:
             # Should skip the row without URL
             assert len(issues) == 1
             assert issues[0].issue_number == 111
+
+
+class TestTransformExportIssues:
+    def test_export_includes_state_reason(self):
+        issues_data = [
+            {
+                "title": "Closed as duplicate",
+                "body": "Duplicate issue",
+                "labels": [{"name": "bug"}],
+                "assignee": None,
+                "html_url": "https://github.com/owner/repo/issues/1",
+                "number": 1,
+                "state_reason": "duplicate",
+            }
+        ]
+
+        dataframe = transform_issues_to_dataframe(issues_data)
+
+        assert dataframe.loc[0, "StateReason"] == "duplicate"

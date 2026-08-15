@@ -149,6 +149,7 @@ class TransferIssueInfo(BaseModel):
     number: int
     url: str
     state: Literal["OPEN", "CLOSED"]
+    state_reason: Optional[str] = None
     parent_number: Optional[int] = None
 
 
