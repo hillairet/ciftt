@@ -138,3 +138,19 @@ Another Issue,https://github.com/owner/repo/issues/2,,In Progress"""
         # Second row - only Status has value
         row_1_fields = csv_data.get_project_field_data(1)
         assert row_1_fields == {"Status": "In Progress"}
+
+
+def test_source_url_is_not_detected_as_project_field():
+    """Test that transfer metadata is classified as an issue field."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        csv_path = Path(temp_dir) / "transferred_fields.csv"
+
+        csv_content = """Title,URL,SourceURL,Priority
+Transferred issue,https://github.com/target/repo/issues/1,https://github.com/source/repo/issues/1,High"""
+
+        csv_path.write_text(csv_content)
+        csv_data = CSVData(csv_path)
+
+        assert "SourceURL" in csv_data.issue_field_columns
+        assert "SourceURL" not in csv_data.project_field_columns
+        assert "Priority" in csv_data.project_field_columns

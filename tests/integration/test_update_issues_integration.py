@@ -169,6 +169,47 @@ class TestUpdateIssuesIntegration:
             assert project_fields["Priority"] == "High"
             assert project_fields["Status"] == "In Progress"
 
+    def test_update_issues_with_project_ignores_source_url(
+        self, tmp_path, mock_github_client
+    ):
+        """Test transferred CSV metadata is not validated as a project field."""
+        transferred_csv = tmp_path / "transferred.csv"
+        transferred_csv.write_text(
+            "Title,URL,SourceURL,Priority\n"
+            "Transferred Issue,https://github.com/target/repo/issues/123,https://github.com/source/repo/issues/456,High\n"
+        )
+
+        mock_github_client.validate_project_exists.return_value = ProjectInfo(
+            id="test-id",
+            title="Test Project",
+            number=123,
+            url="https://github.com/users/owner/projects/123",
+            owner="owner",
+            type="user",
+        )
+        mock_github_client.get_project_field_definitions.return_value = {
+            "Priority": {"name": "Priority", "dataType": "SINGLE_SELECT"},
+        }
+        mock_github_client.update_issue_project_fields.return_value = (
+            ProjectFieldUpdateResult(updated_fields={"Priority": "High"}, errors={})
+        )
+
+        with patch(
+            "ciftt.cli.common.init_github_client", return_value=mock_github_client
+        ), patch("ciftt.cli.common.validate_token_scopes"), patch(
+            "ciftt.cli.common.validate_repository_access"
+        ):
+            update_issues(str(transferred_csv), project="owner/123", dry_run=False)
+
+        mock_github_client.update_issue.assert_called_once()
+        mock_github_client.update_issue_project_fields.assert_called_once()
+
+        call_args = mock_github_client.update_issue_project_fields.call_args
+        assert call_args[0][0] == "target"
+        assert call_args[0][1] == "repo"
+        assert call_args[0][2] == 123
+        assert call_args[0][3] == {"Priority": "High"}
+
     def test_update_issues_without_project_no_fields(
         self, tmp_path, mock_github_client
     ):
