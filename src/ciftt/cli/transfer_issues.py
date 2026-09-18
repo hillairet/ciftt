@@ -1,4 +1,5 @@
 import csv
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -16,6 +17,7 @@ from ciftt.utils import (
 )
 
 SOURCE_URL_COLUMN = "SourceURL"
+UNICODE_ESCAPE_PATTERN = re.compile(r"\\(?:u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})")
 
 
 @dataclass
@@ -136,11 +138,20 @@ def _transfer_close_reason(
     return _normalize_transfer_close_reason(source_reason)
 
 
+def _description_needs_transfer_patch(description: str) -> bool:
+    return any(ord(char) > 127 for char in description) or bool(
+        UNICODE_ESCAPE_PATTERN.search(description)
+    )
+
+
 def _patch_destination_description_if_needed(
     github_client: GitHubClient, row: TransferRow
 ) -> bool:
     description = row.row.get("Description")
     if description is None or str(description).strip() == "":
+        return False
+
+    if not _description_needs_transfer_patch(str(description)):
         return False
 
     if not row.destination_url:

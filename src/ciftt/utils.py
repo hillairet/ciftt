@@ -70,11 +70,15 @@ def safe_decode(x):
         Decoded string, or original string if decoding fails
     """
     if isinstance(x, str):
-        try:
-            return codecs.decode(x, "unicode_escape")
-        except UnicodeDecodeError:
-            # If decoding fails, return the original string
-            return x
+        escape_pattern = re.compile(r"\\(?:[nrt]|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})")
+
+        def decode_match(match: re.Match) -> str:
+            try:
+                return codecs.decode(match.group(0), "unicode_escape")
+            except UnicodeDecodeError:
+                return match.group(0)
+
+        return escape_pattern.sub(decode_match, x)
     return x
 
 

@@ -61,6 +61,14 @@ class TestSafeDecode:
         result = safe_decode("Line\\r\\n")
         assert result == "Line\r\n"
 
+    def test_preserve_decoded_unicode(self):
+        result = safe_decode("## 👍 Title with emoji")
+        assert result == "## 👍 Title with emoji"
+
+    def test_decode_unicode_escape(self):
+        result = safe_decode("## \\U0001f44d Title with emoji")
+        assert result == "## 👍 Title with emoji"
+
     def test_invalid_unicode_returns_original(self):
         result = safe_decode("Invalid\\xGG")
         assert result == "Invalid\\xGG"

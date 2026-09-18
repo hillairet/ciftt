@@ -169,7 +169,7 @@ class FakeDescriptionClient(FakeTransferClient):
         return {"number": issue_update.issue_number, "title": "patched"}
 
 
-def test_transfer_issues_patches_description_when_description_is_present(
+def test_transfer_issues_skips_description_patch_for_ascii_description(
     tmp_path, monkeypatch
 ):
     input_file = tmp_path / "input.csv"
@@ -193,12 +193,72 @@ def test_transfer_issues_patches_description_when_description_is_present(
     )
 
     assert result.exit_code == 0
+    assert not any(call[0] == "update_issue" for call in fake_client.calls)
+
+
+def test_transfer_issues_patches_description_when_description_has_emoji(
+    tmp_path, monkeypatch
+):
+    input_file = tmp_path / "input.csv"
+    output_file = tmp_path / "output.csv"
+    input_file.write_text(
+        "Title,Description,URL\n"
+        "Issue,## 👍 Title with emoji,https://github.com/source/repo/issues/1\n",
+        encoding="utf-8",
+    )
+    fake_client = FakeDescriptionClient()
+
+    monkeypatch.setattr(
+        transfer_module,
+        "setup_github_client_for_command",
+        lambda required_scopes, repositories: fake_client,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        ["transfer-issues", str(input_file), str(output_file), "target/repo"],
+    )
+
+    assert result.exit_code == 0
     assert (
         "update_issue",
         "target",
         "repo",
         101,
-        "Line one\nLine two",
+        "## 👍 Title with emoji",
+    ) in fake_client.calls
+
+
+def test_transfer_issues_patches_description_when_description_has_unicode_escape(
+    tmp_path, monkeypatch
+):
+    input_file = tmp_path / "input.csv"
+    output_file = tmp_path / "output.csv"
+    input_file.write_text(
+        "Title,Description,URL\n"
+        "Issue,## \\U0001f44d Title with emoji,https://github.com/source/repo/issues/1\n",
+        encoding="utf-8",
+    )
+    fake_client = FakeDescriptionClient()
+
+    monkeypatch.setattr(
+        transfer_module,
+        "setup_github_client_for_command",
+        lambda required_scopes, repositories: fake_client,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        ["transfer-issues", str(input_file), str(output_file), "target/repo"],
+    )
+
+    assert result.exit_code == 0
+    assert (
+        "update_issue",
+        "target",
+        "repo",
+        101,
+        "## 👍 Title with emoji",
     ) in fake_client.calls
 
 
